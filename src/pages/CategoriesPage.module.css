@@ -1,0 +1,47 @@
+.wrap { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+
+.addForm {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg2);
+  flex-shrink: 0;
+}
+.addTitle { font-size: 11px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
+.addRow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.addRow input, .addRow select { flex: 1; min-width: 120px; }
+.idInp { max-width: 160px; font-family: var(--mono); font-size: 11px; }
+.typeInp { max-width: 100px; }
+.addBtn { padding: 7px 16px; background: var(--text); color: var(--bg); border: none; border-radius: var(--r); font-size: 12px; font-weight: 600; white-space: nowrap; cursor: pointer; }
+.addBtn:disabled { opacity: .5; }
+
+.grid { flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 20px; }
+
+.groupLabel { font-size: 11px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 8px; }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+.empty { font-size: 11px; color: var(--text3); padding: 8px 0; }
+
+.card { border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
+
+.cardHdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+}
+.catName { font-size: 12px; font-weight: 600; display: block; }
+.catId { font-size: 10px; color: var(--text3); font-family: var(--mono); display: block; margin-top: 1px; }
+
+.delBtn { background: none; border: none; font-size: 16px; color: var(--text3); cursor: pointer; line-height: 1; }
+.delBtn:hover { color: var(--red); }
+
+.subcats { padding: 8px 12px; display: flex; flex-direction: column; gap: 4px; }
+.subRow { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 11.5px; color: var(--text2); padding: 3px 0; }
+.subDel { background: none; border: none; font-size: 13px; color: var(--text3); cursor: pointer; line-height: 1; }
+.subDel:hover { color: var(--red); }
+
+.addSubRow { display: flex; gap: 4px; margin-top: 4px; }
+.subInput { font-size: 11px; }
+.subAddBtn { padding: 4px 10px; background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--r); font-size: 13px; font-weight: 600; cursor: pointer; }

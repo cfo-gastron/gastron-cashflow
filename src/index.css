@@ -1,0 +1,110 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --font: 'Plus Jakarta Sans', sans-serif;
+  --mono: 'IBM Plex Mono', monospace;
+
+  --bg: #ffffff;
+  --bg2: #f7f7f5;
+  --bg3: #efede9;
+  --border: #e5e3df;
+  --border2: #d4d2ce;
+
+  --text: #1a1916;
+  --text2: #706e6a;
+  --text3: #b0aea9;
+
+  --green: #1a7a4a;
+  --green-bg: #f0fdf4;
+  --red: #c0392b;
+  --red-bg: #fff5f5;
+  --amber: #92400e;
+  --amber-bg: #fffbeb;
+  --blue: #1d4ed8;
+  --blue-bg: #eff6ff;
+  --blue-border: #bfdbfe;
+  --teal: #0f766e;
+
+  --r: 6px;
+  --r2: 10px;
+  --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,.1), 0 2px 4px rgba(0,0,0,.06);
+}
+
+html, body, #root {
+  height: 100%;
+  font-family: var(--font);
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+
+/* BUTTONS */
+button { font-family: var(--font); cursor: pointer; }
+
+/* INPUT / SELECT */
+input, select, textarea {
+  font-family: var(--font);
+  font-size: 12px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  border-radius: var(--r);
+  padding: 7px 10px;
+  outline: none;
+  transition: border-color .15s;
+  width: 100%;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--text3); }
+
+/* BADGE */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 100px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .02em;
+}
+.badge-est { background: var(--amber-bg); color: var(--amber); }
+.badge-hist { background: var(--blue-bg); color: var(--blue); }
+.badge-rec { background: var(--bg3); color: var(--text2); }
+.badge-in { background: var(--green-bg); color: var(--green); }
+.badge-out { background: var(--red-bg); color: var(--red); }
+
+/* CHIP STATUS */
+.chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 100px; font-size: 11px; font-weight: 600; }
+.chip-ok { background: var(--green-bg); color: var(--green); }
+.chip-warn { background: var(--amber-bg); color: var(--amber); }
+.chip-danger { background: var(--red-bg); color: var(--red); }
+
+/* LOADING SPINNER */
+.spinner {
+  width: 20px; height: 20px;
+  border: 2px solid var(--border2);
+  border-top-color: var(--text2);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* EMPTY STATE */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 8px; padding: 48px 24px; color: var(--text3); font-size: 12px; text-align: center;
+}
+.empty-state svg { opacity: .4; }
+
+/* FORM GROUP */
+.fg { display: flex; flex-direction: column; gap: 4px; }
+.fg label { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .05em; }

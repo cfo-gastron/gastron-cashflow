@@ -1,0 +1,210 @@
+.layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.sidebar {
+  width: 300px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.sidebarDivider {
+  height: 1px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+.sidebarToggle {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 5;
+  width: 20px;
+  height: 40px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-left: none;
+  border-radius: 0 var(--r) var(--r) 0;
+  font-size: 12px;
+  color: var(--text2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s;
+}
+.sidebarToggle:hover { background: var(--bg3); }
+
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.chips {
+  display: flex;
+  gap: 8px;
+  padding: 8px 20px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg2);
+}
+
+.tableWrap {
+  flex: 1;
+  overflow: auto;
+  padding: 0;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.table thead tr {
+  background: var(--bg2);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.table th {
+  padding: 9px 14px;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text2);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+/* MONTH HEADER ROW */
+.monthHeader td {
+  background: var(--bg2);
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--text2);
+  cursor: pointer;
+  user-select: none;
+  padding: 6px 14px;
+  border-top: 1px solid var(--border);
+}
+.monthHeader td:hover { background: var(--bg3); }
+
+.arrow {
+  font-size: 9px;
+  margin-left: 6px;
+  color: var(--text3);
+}
+
+/* HISTORIS */
+.histBanner td {
+  background: var(--blue-bg);
+  color: var(--blue);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  border-bottom: 1px solid var(--blue-border);
+}
+.histNote {
+  font-weight: 400;
+  opacity: .7;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 11px;
+}
+.histRow td {
+  background: #f8fbff;
+  opacity: .85;
+}
+
+.gapRow td {
+  height: 6px;
+  background: var(--bg2);
+  border-top: 2px solid var(--border2);
+}
+
+/* WEEK ROWS */
+.weekRow { transition: background .1s; }
+.weekRow:hover td { background: var(--bg2); }
+.curWeek td { background: #fefce8 !important; }
+.rowDanger td { background: var(--red-bg) !important; }
+.rowWarn td { background: var(--amber-bg) !important; }
+
+/* CELLS */
+.dateCell {
+  white-space: nowrap;
+  font-weight: 500;
+}
+.curTag {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 9px;
+  background: #fef08a;
+  color: #713f12;
+  padding: 1px 5px;
+  border-radius: 100px;
+  font-weight: 600;
+}
+
+.numMono {
+  font-family: var(--mono);
+  font-size: 11px;
+}
+.numNeg { color: var(--red); }
+.numGray { color: var(--text3); font-size: 11px; }
+.numIn { color: var(--green); font-family: var(--mono); font-size: 11px; font-weight: 600; }
+.numOut { color: var(--red); font-family: var(--mono); font-size: 11px; font-weight: 600; }
+
+/* CELL ITEMS */
+.cellSingle {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.cellName {
+  font-size: 10.5px;
+  color: var(--text2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+}
+
+.cellMulti { display: flex; flex-direction: column; gap: 3px; }
+.cellToggle {
+  background: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+}
+.cellCount { font-size: 10px; color: var(--text3); }
+.cellItems { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
+.cellItem { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 2px 6px; background: var(--bg2); border-radius: 3px; }
+.cellItemName { font-size: 10.5px; color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px; }
+.cellItemAmt { font-family: var(--mono); font-size: 10px; flex-shrink: 0; }

@@ -1,0 +1,130 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.hdr {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 20px;
+  height: 48px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.logoGastron {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -.02em;
+}
+.logoDivider {
+  color: var(--text3);
+  font-size: 14px;
+}
+.logoSub {
+  font-size: 13px;
+  color: var(--text2);
+  font-weight: 500;
+}
+
+.tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+}
+
+.tab {
+  padding: 6px 12px;
+  border: none;
+  background: none;
+  color: var(--text2);
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: var(--r);
+  transition: all .15s;
+  position: relative;
+}
+.tab:hover { background: var(--bg2); color: var(--text); }
+.tabOn {
+  color: var(--text);
+  background: var(--bg2);
+  font-weight: 600;
+}
+.tabOn::after {
+  content: '';
+  position: absolute;
+  bottom: -7px;
+  left: 12px;
+  right: 12px;
+  height: 2px;
+  background: var(--text);
+  border-radius: 2px;
+}
+
+.hdrRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.saldoBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: border-color .15s;
+}
+.saldoBtn:hover { border-color: var(--border2); }
+
+.saldoEdit {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.saldoLabel {
+  font-size: 10px;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  font-weight: 600;
+}
+
+.saldoVal {
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--mono);
+  color: var(--text);
+}
+
+.saldoInp {
+  width: 140px;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.main {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
