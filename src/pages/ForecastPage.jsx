@@ -211,8 +211,8 @@ export default function ForecastPage({ page, setPage }) {
                             </div>
                           </td>
                           <td><span className="num">{rp(r.open)}</span></td>
-                          <td>{r.ins.length  ? <CellItems items={r.ins}  type="in"  /> : <span className="num-dim">—</span>}</td>
-                          <td>{r.outs.length ? <CellItems items={r.outs} type="out" /> : <span className="num-dim">—</span>}</td>
+                          <td>{r.ins.length  ? <CellItems items={r.ins}  type="in"  onToggle={() => toggleExpand(r.week.start, 'in')}  isOpen={isExpanded(r.week.start, 'in')}  /> : <span className="num-dim">—</span>}</td>
+                          <td>{r.outs.length ? <CellItems items={r.outs} type="out" onToggle={() => toggleExpand(r.week.start, 'out')} isOpen={isExpanded(r.week.start, 'out')} /> : <span className="num-dim">—</span>}</td>
                           <td><span className={r.close < 0 ? 'num-out' : 'num'}>{rp(r.close)}</span></td>
                           <td>
                             {r.status === 'defisit' && <span className="chip chip-danger">Defisit!</span>}
@@ -221,6 +221,8 @@ export default function ForecastPage({ page, setPage }) {
                           </td>
                         </tr>
                       )
+                      if (isExpanded(r.week.start, 'in')  && r.ins.length  > 1) rows.push(<ExpandPanel key={`exp-in-${i}`}  items={r.ins}  type="in"  />)
+                      if (isExpanded(r.week.start, 'out') && r.outs.length > 1) rows.push(<ExpandPanel key={`exp-out-${i}`} items={r.outs} type="out" />)
                     }
                     return rows
                   })
