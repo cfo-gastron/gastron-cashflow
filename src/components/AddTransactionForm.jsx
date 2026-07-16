@@ -89,7 +89,7 @@ export default function AddTransactionForm({ categories, onAdd, allWeeks }) {
       }
       userContent.push({ type: 'text', text: aiText || 'Parse transaksi dari gambar.' })
 
-      const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      const resp = await fetch('/api/claude', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

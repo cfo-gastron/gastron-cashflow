@@ -1,80 +1,95 @@
+import { useState } from 'react'
 import { useApp } from '../context/AppContext'
 import { rp } from '../lib/utils'
 import styles from './Layout.module.css'
 
 const TABS = [
-  { id: 'forecast', label: 'Forecast' },
-  { id: 'monthly', label: 'Monthly Report' },
-  { id: 'recurring', label: 'Recurring' },
-  { id: 'categories', label: 'Kategori' },
+  { id: 'forecast',   label: 'Forecast',      icon: '▤' },
+  { id: 'monthly',    label: 'Monthly Report', icon: '▦' },
+  { id: 'budget',     label: 'Budget',         icon: '◎' },
+  { id: 'recurring',  label: 'Recurring',      icon: '↻' },
+  { id: 'categories', label: 'Kategori',       icon: '⊞' },
 ]
 
-export default function Layout({ page, setPage, children }) {
+export default function Layout({ page, setPage, sidebar, children }) {
   const { saldoAwal, updateSaldo, loading } = useApp()
-  const [editSaldo, setEditSaldo] = useState(false)
-  const [saldoInput, setSaldoInput] = useState('')
+  const [editSaldo, setEditSaldo]     = useState(false)
+  const [saldoInput, setSaldoInput]   = useState('')
+  const [sidebarOpen, setSidebarOpen] = useState(true)
 
-  function startEditSaldo() {
-    setSaldoInput(saldoAwal)
-    setEditSaldo(true)
-  }
+  function startEditSaldo() { setSaldoInput(saldoAwal); setEditSaldo(true) }
   function saveSaldo() {
     const v = parseFloat(saldoInput)
     if (!isNaN(v)) updateSaldo(v)
     setEditSaldo(false)
   }
 
+  const hasSidebar = !!sidebar
+
   return (
     <div className={styles.shell}>
-      <header className={styles.hdr}>
-        <div className={styles.logo}>
-          <span className={styles.logoGastron}>Gastron</span>
-          <span className={styles.logoDivider}>·</span>
-          <span className={styles.logoSub}>Cashflow 2026</span>
-        </div>
-
-        <nav className={styles.tabs}>
-          {TABS.map(t => (
+      <nav className={styles.nav}>
+        <div className={styles.navLogo}>G</div>
+        {TABS.map((t, i) => (
+          <div key={t.id} style={{ display: 'contents' }}>
+            {i === 3 && <div className={styles.navSep} />}
             <button
-              key={t.id}
-              className={`${styles.tab} ${page === t.id ? styles.tabOn : ''}`}
+              className={`${styles.navItem} ${page === t.id ? styles.navItemOn : ''}`}
               onClick={() => setPage(t.id)}
+              title={t.label}
+              data-label={t.label}
             >
-              {t.label}
+              {t.icon}
             </button>
-          ))}
-        </nav>
-
-        <div className={styles.hdrRight}>
-          {editSaldo ? (
-            <div className={styles.saldoEdit}>
-              <span className={styles.saldoLabel}>Saldo awal</span>
-              <input
-                type="number"
-                value={saldoInput}
-                onChange={e => setSaldoInput(e.target.value)}
-                onBlur={saveSaldo}
-                onKeyDown={e => e.key === 'Enter' && saveSaldo()}
-                autoFocus
-                className={styles.saldoInp}
-              />
-            </div>
-          ) : (
-            <button className={styles.saldoBtn} onClick={startEditSaldo} title="Edit saldo awal">
-              <span className={styles.saldoLabel}>Saldo awal</span>
-              <span className={styles.saldoVal}>{rp(saldoAwal)}</span>
-            </button>
-          )}
-          {loading && <div className="spinner" style={{ width: 14, height: 14 }} />}
+          </div>
+        ))}
+        <div className={styles.navBottom}>
+          <div className={styles.navSep} />
+          {loading && <div className="spinner" />}
         </div>
-      </header>
+      </nav>
 
-      <main className={styles.main}>
-        {children}
-      </main>
+      <div className={styles.body}>
+        {hasSidebar && (
+          <aside className={`${styles.sidebar} ${sidebarOpen ? '' : styles.sidebarHidden}`}>
+            {sidebar}
+          </aside>
+        )}
+
+        <div className={styles.main}>
+          <header className={styles.mainHdr}>
+            {hasSidebar && (
+              <button className={styles.toggleBtn} onClick={() => setSidebarOpen(o => !o)}>
+                {sidebarOpen ? '‹' : '›'}
+              </button>
+            )}
+            <span className={styles.pageTitle}>{TABS.find(t => t.id === page)?.label}</span>
+            <div className={styles.hdrRight}>
+              {editSaldo ? (
+                <div className={styles.saldoEdit}>
+                  <span className={styles.saldoLabel}>Saldo awal</span>
+                  <input
+                    type="number" value={saldoInput}
+                    onChange={e => setSaldoInput(e.target.value)}
+                    onBlur={saveSaldo}
+                    onKeyDown={e => e.key === 'Enter' && saveSaldo()}
+                    autoFocus className={styles.saldoInp}
+                  />
+                </div>
+              ) : (
+                <button className={styles.saldoBtn} onClick={startEditSaldo} title="Edit saldo awal">
+                  <span className={styles.saldoLabel}>Saldo awal</span>
+                  <span className={styles.saldoVal}>{rp(saldoAwal)}</span>
+                </button>
+              )}
+              {children?.headerActions}
+            </div>
+          </header>
+          <div className={styles.content}>
+            {children?.content ?? children}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
-
-// Need useState import
-import { useState } from 'react'

@@ -1,27 +1,22 @@
-import './index.css'
-import { AppProvider } from './context/AppContext'
-import Layout from './components/Layout'
-import ForecastPage from './pages/ForecastPage'
-import MonthlyPage from './pages/MonthlyPage'
-import RecurringPage from './pages/RecurringPage'
-import CategoriesPage from './pages/CategoriesPage'
 import { useState } from 'react'
+import { AppProvider } from './context/AppContext'
+import ForecastPage   from './pages/ForecastPage'
+import MonthlyPage    from './pages/MonthlyPage'
+import BudgetPage     from './pages/BudgetPage'
+import RecurringPage  from './pages/RecurringPage'
+import CategoriesPage from './pages/CategoriesPage'
+import './index.css'
 
 export default function App() {
   const [page, setPage] = useState('forecast')
 
-  const pages = {
-    forecast: <ForecastPage />,
-    monthly: <MonthlyPage />,
-    recurring: <RecurringPage />,
-    categories: <CategoriesPage />,
-  }
-
   return (
     <AppProvider>
-      <Layout page={page} setPage={setPage}>
-        {pages[page]}
-      </Layout>
+      {page === 'forecast'   && <ForecastPage   page={page} setPage={setPage} />}
+      {page === 'monthly'    && <MonthlyPage    page={page} setPage={setPage} />}
+      {page === 'budget'     && <BudgetPage     page={page} setPage={setPage} />}
+      {page === 'recurring'  && <RecurringPage  page={page} setPage={setPage} />}
+      {page === 'categories' && <CategoriesPage page={page} setPage={setPage} />}
     </AppProvider>
   )
 }

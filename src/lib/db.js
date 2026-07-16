@@ -131,3 +131,37 @@ export async function uploadFile(file) {
   const { data } = supabase.storage.from('attachments').getPublicUrl(path)
   return { name: file.name, url: data.publicUrl }
 }
+
+// ── BUDGETS ──────────────────────────────────────────────────
+
+export async function getBudgets() {
+  const { data, error } = await supabase
+    .from('cashflow_budgets')
+    .select('*')
+  if (error) throw error
+  // Convert array to object: { 'catId_period': amount }
+  const result = {}
+  for (const b of (data || [])) {
+    result[`${b.cat_id}_${b.period}`] = b.amount
+  }
+  return result
+}
+
+export async function upsertBudget(catId, period, amount) {
+  const { error } = await supabase
+    .from('cashflow_budgets')
+    .upsert(
+      { cat_id: catId, period, amount, updated_at: new Date().toISOString() },
+      { onConflict: 'cat_id,period' }
+    )
+  if (error) throw error
+}
+
+export async function deleteBudget(catId, period) {
+  const { error } = await supabase
+    .from('cashflow_budgets')
+    .delete()
+    .eq('cat_id', catId)
+    .eq('period', period)
+  if (error) throw error
+}
