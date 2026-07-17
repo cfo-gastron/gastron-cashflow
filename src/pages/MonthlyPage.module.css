@@ -8,21 +8,27 @@
 .exportBtn { display: flex; align-items: center; gap: 4px; padding: 5px 10px; border-radius: var(--r); border: 1px solid var(--border); background: none; color: var(--text2); font-size: 11px; font-weight: 600; cursor: pointer; font-family: var(--font); transition: all .15s; }
 .exportBtn:hover { background: var(--bg3); border-color: var(--border2); color: var(--text); }
 .tableWrap { flex: 1; overflow: auto; }
-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 12px; }
 thead { position: sticky; top: 0; z-index: 10; }
 thead tr { background: var(--bg); }
-th { padding: 7px 12px; text-align: right; font-size: 9px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: .07em; border-bottom: 1px solid var(--border); white-space: nowrap; }
-th:first-child { text-align: left; min-width: 180px; }
-td { padding: 5px 12px; text-align: right; border-bottom: 1px solid #f0ede9; background: var(--white); vertical-align: middle; }
-td:first-child { text-align: left; }
+th { padding: 7px 12px; text-align: right; font-size: 9px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: .07em; border-bottom: 1px solid var(--border); white-space: nowrap; min-width: 95px; }
+th:first-child { text-align: left; min-width: 200px; position: sticky; left: 0; background: var(--bg); z-index: 11; }
+td { padding: 5px 12px; text-align: right; border-bottom: 1px solid #f0ede9; background: var(--white); vertical-align: middle; white-space: nowrap; }
+td:first-child { text-align: left; position: sticky; left: 0; background: inherit; z-index: 1; min-width: 200px; }
 .sectionHdr td { background: var(--bg); font-size: 10px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: .07em; padding: 6px 12px; }
+.sectionHdr td:first-child { background: var(--bg); }
 .catHdr td { font-weight: 600; color: var(--text); background: var(--bg2); }
+.catHdr td:first-child { background: var(--bg2); }
 .subRow td { color: var(--text2); font-size: 11px; }
 .totalRow td { font-weight: 700; color: var(--text); background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.totalRow td:first-child { background: var(--bg2); }
 .highlight td { background: var(--green-light); }
+.highlight td:first-child { background: var(--green-light); }
 .highlightNeg td { background: var(--red-light); }
+.highlightNeg td:first-child { background: var(--red-light); }
 .totalCol { font-weight: 700; }
 .marginRow td { font-size: 11px; color: var(--text3); background: var(--bg2); }
+.marginRow td:first-child { background: var(--bg2); }
 .gap td { height: 6px; background: var(--bg); border: none; padding: 0; }
 .pos { color: var(--green); font-family: var(--mono); font-size: 11px; font-weight: 600; }
 .neg { color: var(--red);   font-family: var(--mono); font-size: 11px; font-weight: 600; }
