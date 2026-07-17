@@ -78,8 +78,7 @@ export default function BudgetPage({ page, setPage }) {
   const catsOver      = outCats.filter(c => { const b=getBudget(c.id); return b>0 && (spending[c.id]||0) > b }).length
 
   return (
-    <Layout page={page} setPage={setPage}>
-      {{ content: (
+    <Layout page={page} setPage={setPage} content={
         <div className={styles.wrap}>
           <div className={styles.toolbar}>
             <div>
@@ -187,7 +186,7 @@ export default function BudgetPage({ page, setPage }) {
             })}
           </div>
         </div>
-      )}}
+    }>
     </Layout>
   )
 }

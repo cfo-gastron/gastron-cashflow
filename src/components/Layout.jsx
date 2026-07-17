@@ -11,7 +11,7 @@ const TABS = [
   { id: 'categories', label: 'Kategori',       icon: '⊞' },
 ]
 
-export default function Layout({ page, setPage, sidebar, children }) {
+export default function Layout({ page, setPage, sidebar, children, content }) {
   const { saldoAwal, updateSaldo, loading } = useApp()
   const [editSaldo, setEditSaldo]     = useState(false)
   const [saldoInput, setSaldoInput]   = useState('')
@@ -86,7 +86,7 @@ export default function Layout({ page, setPage, sidebar, children }) {
             </div>
           </header>
           <div className={styles.content}>
-            {children?.content ?? children}
+            {content ?? children?.content ?? children}
           </div>
         </div>
       </div>

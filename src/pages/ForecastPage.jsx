@@ -199,8 +199,7 @@ export default function ForecastPage({ page, setPage }) {
 
   return (
     <>
-    <Layout page={page} setPage={setPage} sidebar={sidebarContent}>
-      {{ content: (
+    <Layout page={page} setPage={setPage} sidebar={sidebarContent} content={
         <div className={styles.wrap}>
           <div className={styles.statusBar}>
             {chips.defisit > 0 && <span className="chip chip-danger">⚠ {chips.defisit} minggu defisit</span>}

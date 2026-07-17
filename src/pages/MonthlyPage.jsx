@@ -65,8 +65,7 @@ export default function MonthlyPage({ page, setPage }) {
   }
 
   return (
-    <Layout page={page} setPage={setPage}>
-      {{ content: (
+    <Layout page={page} setPage={setPage} content={
         <div className={styles.wrap}>
           <div className={styles.toolbar}>
             <div>
@@ -147,7 +146,7 @@ export default function MonthlyPage({ page, setPage }) {
             </div>
           )}
         </div>
-      )}}
+    }>
     </Layout>
   )
 }
