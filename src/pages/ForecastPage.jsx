@@ -198,6 +198,7 @@ export default function ForecastPage({ page, setPage }) {
   )
 
   return (
+    <>
     <Layout page={page} setPage={setPage} sidebar={sidebarContent}>
       {{ content: (
         <div className={styles.wrap}>
@@ -277,16 +278,17 @@ export default function ForecastPage({ page, setPage }) {
             </table>
           </div>
         </div>
-      )}}
-      {editModal && (
-        <EditModal
-          tx={editModal}
-          categories={categories}
-          onUpdate={handleUpdate}
-          onClose={() => setEditModal(null)}
-        />
-      )}
+      }}
     </Layout>
+    {editModal && (
+      <EditModal
+        tx={editModal}
+        categories={categories}
+        onUpdate={handleUpdate}
+        onClose={() => setEditModal(null)}
+      />
+    )}
+  </>
   )
 }
 
