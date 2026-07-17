@@ -277,7 +277,7 @@ export default function ForecastPage({ page, setPage }) {
             </table>
           </div>
         </div>
-      }}
+    }>
     </Layout>
     {editModal && (
       <EditModal
