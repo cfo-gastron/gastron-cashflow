@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, Fragment } from 'react'
 import { useApp } from '../context/AppContext'
 import { addTransaction, deleteTransaction, updateTransaction } from '../lib/db'
 import { rp, MONTHS_SHORT, today } from '../lib/utils'
@@ -32,6 +32,94 @@ const HIST_WEEKS = generateHistWeeks()
 const ALL_WEEKS = [...HIST_WEEKS, ...WEEKS]
 const TODAY_STR = today()
 
+function CellItems({ items, type, onToggle, isOpen }) {
+  const total = items.reduce((s,z) => s + Number(z.amount), 0)
+  const cls = type === 'in' ? 'num-in' : 'num-out'
+  const sign = type === 'in' ? '+' : '-'
+  if (items.length === 1) {
+    const z = items[0]; const cat = z.subcat_name || z.cat_name || ''
+    return (
+      <div className={styles.cellSingle}>
+        <span className={cls}>{sign}{rp(total)}</span>
+        <span className={styles.cellName}>{z.name}{cat ? ` · ${cat}` : ''}{z.is_rec && <span className="badge badge-rec" style={{marginLeft:4}}>↻</span>}{z.is_est && <span className="badge badge-est" style={{marginLeft:4}}>Est</span>}</span>
+      </div>
+    )
+  }
+  return (
+    <div className={styles.cellMulti}>
+      <button className={styles.cellToggle} onClick={onToggle}>
+        <span className={cls}>{sign}{rp(total)}</span>
+        <span className={styles.cellCount}>{isOpen ? '▲' : '▼'} {items.length} transaksi</span>
+      </button>
+    </div>
+  )
+}
+
+function WeekRow({ r, onToggle, isExpIn, isExpOut, isHist }) {
+  const cls = r.isCur ? styles.curWeek : r.status==='defisit' ? styles.rowDanger : r.status==='mepet' ? styles.rowWarn : ''
+  const SHOW = 6
+  return (
+    <Fragment>
+      <tr className={`${isHist ? styles.histRow : styles.weekRow} ${cls}`}>
+        <td>
+          <div className={styles.dateCell}>
+            <span className="num">{r.week.label}</span>
+            {r.isCur && <span className={styles.curTag}>minggu ini</span>}
+          </div>
+        </td>
+        <td><span className={isHist ? 'num-dim' : 'num'}>{isHist ? '—' : rp(r.open)}</span></td>
+        <td>{r.ins.length  ? <CellItems items={r.ins}  type="in"  onToggle={() => onToggle(r.week.start,'in')}  isOpen={isExpIn}  /> : <span className="num-dim">—</span>}</td>
+        <td>{r.outs.length ? <CellItems items={r.outs} type="out" onToggle={() => onToggle(r.week.start,'out')} isOpen={isExpOut} /> : <span className="num-dim">—</span>}</td>
+        <td><span className={isHist ? 'num-dim' : r.close < 0 ? 'num-out' : 'num'}>{isHist ? '—' : rp(r.close)}</span></td>
+        <td>
+          {isHist && <span className="badge badge-hist">Hist</span>}
+          {!isHist && r.status === 'defisit' && <span className="chip chip-danger">Defisit!</span>}
+          {!isHist && r.status === 'mepet'   && <span className="chip chip-warn">Mepet</span>}
+          {!isHist && r.status === 'aman'    && <span className="chip chip-ok">Aman</span>}
+        </td>
+      </tr>
+      {isExpIn && r.ins.length > 1 && (
+        <tr className={styles.expandRow}>
+          <td colSpan={6}>
+            <div className={styles.expandInner}>
+              {r.ins.slice(0,SHOW).map((z,i) => (
+                <div key={i} className={styles.expandItem}>
+                  <span className={styles.expandName}>{z.name}</span>
+                  <span className={styles.expandCat}>{z.subcat_name||z.cat_name||''}</span>
+                  <span className={`${styles.expandAmt} num-in`}>{rp(z.amount)}</span>
+                </div>
+              ))}
+              <div className={styles.expandFooter}>
+                <span>{r.ins.length > SHOW ? `+ ${r.ins.length-SHOW} lainnya` : ''}</span>
+                <span className="num-in">+{rp(r.ins.reduce((s,z)=>s+Number(z.amount),0))} total</span>
+              </div>
+            </div>
+          </td>
+        </tr>
+      )}
+      {isExpOut && r.outs.length > 1 && (
+        <tr className={styles.expandRow}>
+          <td colSpan={6}>
+            <div className={styles.expandInner}>
+              {r.outs.slice(0,SHOW).map((z,i) => (
+                <div key={i} className={styles.expandItem}>
+                  <span className={styles.expandName}>{z.name}</span>
+                  <span className={styles.expandCat}>{z.subcat_name||z.cat_name||''}</span>
+                  <span className={`${styles.expandAmt} num-out`}>{rp(z.amount)}</span>
+                </div>
+              ))}
+              <div className={styles.expandFooter}>
+                <span>{r.outs.length > SHOW ? `+ ${r.outs.length-SHOW} lainnya` : ''}</span>
+                <span className="num-out">-{rp(r.outs.reduce((s,z)=>s+Number(z.amount),0))} total</span>
+              </div>
+            </div>
+          </td>
+        </tr>
+      )}
+    </Fragment>
+  )
+}
+
 export default function ForecastPage({ page, setPage }) {
   const { transactions, setTransactions, saldoAwal, allItems, categories } = useApp()
   const [collapsedMonths, setCollapsedMonths] = useState(() => {
@@ -40,7 +128,7 @@ export default function ForecastPage({ page, setPage }) {
     return s
   })
   const [collapsedHist, setCollapsedHist] = useState(true)
-  const [expandedRows, setExpandedRows] = useState({}) // key: `${weekStart}_${type}`
+  const [expandedRows, setExpandedRows] = useState({})
 
   function toggleExpand(weekStart, type) {
     const key = `${weekStart}_${type}`
@@ -49,7 +137,6 @@ export default function ForecastPage({ page, setPage }) {
   function isExpanded(weekStart, type) {
     return !!expandedRows[`${weekStart}_${type}`]
   }
-
   function toggleMonth(month) {
     setCollapsedMonths(prev => { const s = new Set(prev); s.has(month) ? s.delete(month) : s.add(month); return s })
   }
@@ -111,7 +198,7 @@ export default function ForecastPage({ page, setPage }) {
 
   const sidebarContent = (
     <>
-      <AddTransactionForm categories={categories} onAdd={handleAdd} allWeeks={ALL_WEEKS} />
+      <AddTransactionForm categories={categories} onAdd={handleAdd} allWeeks={ALL_WEEKS} transactions={transactions} />
       <TransactionList transactions={transactions} onDelete={handleDelete} onUpdate={handleUpdate} allWeeks={ALL_WEEKS} categories={categories} />
     </>
   )
@@ -157,74 +244,61 @@ export default function ForecastPage({ page, setPage }) {
                 </tr>
               </thead>
               <tbody>
+                {/* HISTORIS */}
                 {tableData.histRows.length > 0 && (
                   <>
-                    <tr className={styles.histBanner}><td colSpan={6}>📂 Data Historis Jan–Mar 2026<span className={styles.histNote}> · tidak mempengaruhi saldo forecast</span></td></tr>
+                    <tr className={styles.histBanner}>
+                      <td colSpan={6}>📂 Data Historis Jan–Mar 2026<span className={styles.histNote}> · tidak mempengaruhi saldo forecast</span></td>
+                    </tr>
                     {[0,1,2].map(mo => {
                       const moRows = tableData.histRows.filter(r => r.week.month === mo)
                       if (!moRows.length) return null
                       return (
-                        <tbody key={`hist-${mo}`}>
+                        <Fragment key={`hist-mo-${mo}`}>
                           <tr className={styles.monthRow} onClick={() => setCollapsedHist(o => !o)}>
                             <td colSpan={6}>{MONTHS_SHORT[mo]} 2026 <span className={styles.arrow}>{collapsedHist ? '▶' : '▼'}</span></td>
                           </tr>
                           {!collapsedHist && moRows.map((r,i) => (
-                            <>
-                              <tr key={i} className={styles.histRow}>
-                                <td><span className="num">{r.week.label}</span></td>
-                                <td><span className="num-dim">—</span></td>
-                                <td>{r.ins.length  ? <CellItems items={r.ins}  type="in"  onToggle={() => toggleExpand(`hist_${r.week.start}`, 'in')}  isOpen={isExpanded(`hist_${r.week.start}`, 'in')}  /> : null}</td>
-                                <td>{r.outs.length ? <CellItems items={r.outs} type="out" onToggle={() => toggleExpand(`hist_${r.week.start}`, 'out')} isOpen={isExpanded(`hist_${r.week.start}`, 'out')} /> : null}</td>
-                                <td><span className="num-dim">—</span></td>
-                                <td><span className="badge badge-hist">Hist</span></td>
-                              </tr>
-                              {isExpanded(`hist_${r.week.start}`, 'in')  && r.ins.length  > 1 && <ExpandPanel key={`hexp-in-${i}`}  items={r.ins}  type="in"  />}
-                              {isExpanded(`hist_${r.week.start}`, 'out') && r.outs.length > 1 && <ExpandPanel key={`hexp-out-${i}`} items={r.outs} type="out" />}
-                            </>
+                            <WeekRow
+                              key={`hist-${mo}-${i}`}
+                              r={r}
+                              onToggle={(ws,t) => toggleExpand(`hist_${ws}`,t)}
+                              isExpIn={isExpanded(`hist_${r.week.start}`,'in')}
+                              isExpOut={isExpanded(`hist_${r.week.start}`,'out')}
+                              isHist={true}
+                            />
                           ))}
-                        </tbody>
+                        </Fragment>
                       )
                     })}
                     <tr className={styles.gapRow}><td colSpan={6} /></tr>
                   </>
                 )}
+
+                {/* FORECAST */}
                 {(() => {
                   let lastMonth = -1
                   return tableData.rows.map((r, i) => {
-                    const rows = []
-                    if (r.week.month !== lastMonth) {
-                      lastMonth = r.week.month
-                      const collapsed = collapsedMonths.has(r.week.month)
-                      rows.push(
-                        <tr key={`mh-${r.week.month}`} className={styles.monthRow} onClick={() => toggleMonth(r.week.month)}>
-                          <td colSpan={6}>{MONTHS_SHORT[r.week.month]} 2026 <span className={styles.arrow}>{collapsed ? '▶' : '▼'}</span></td>
-                        </tr>
-                      )
-                    }
-                    if (!collapsedMonths.has(r.week.month)) {
-                      rows.push(
-                        <tr key={`w-${i}`} className={`${styles.weekRow} ${r.isCur ? styles.curWeek : ''} ${r.status==='defisit' ? styles.rowDanger : ''} ${r.status==='mepet' ? styles.rowWarn : ''}`}>
-                          <td>
-                            <div className={styles.dateCell}>
-                              <span className="num">{r.week.label}</span>
-                              {r.isCur && <span className={styles.curTag}>minggu ini</span>}
-                            </div>
-                          </td>
-                          <td><span className="num">{rp(r.open)}</span></td>
-                          <td>{r.ins.length  ? <CellItems items={r.ins}  type="in"  onToggle={() => toggleExpand(r.week.start, 'in')}  isOpen={isExpanded(r.week.start, 'in')}  /> : <span className="num-dim">—</span>}</td>
-                          <td>{r.outs.length ? <CellItems items={r.outs} type="out" onToggle={() => toggleExpand(r.week.start, 'out')} isOpen={isExpanded(r.week.start, 'out')} /> : <span className="num-dim">—</span>}</td>
-                          <td><span className={r.close < 0 ? 'num-out' : 'num'}>{rp(r.close)}</span></td>
-                          <td>
-                            {r.status === 'defisit' && <span className="chip chip-danger">Defisit!</span>}
-                            {r.status === 'mepet'   && <span className="chip chip-warn">Mepet</span>}
-                            {r.status === 'aman'    && <span className="chip chip-ok">Aman</span>}
-                          </td>
-                        </tr>
-                      )
-                      if (isExpanded(r.week.start, 'in')  && r.ins.length  > 1) rows.push(<ExpandPanel key={`exp-in-${i}`}  items={r.ins}  type="in"  />)
-                      if (isExpanded(r.week.start, 'out') && r.outs.length > 1) rows.push(<ExpandPanel key={`exp-out-${i}`} items={r.outs} type="out" />)
-                    }
-                    return rows
+                    const isNewMonth = r.week.month !== lastMonth
+                    if (isNewMonth) lastMonth = r.week.month
+                    const collapsed = collapsedMonths.has(r.week.month)
+                    return (
+                      <Fragment key={`frag-${i}`}>
+                        {isNewMonth && (
+                          <tr className={styles.monthRow} onClick={() => toggleMonth(r.week.month)}>
+                            <td colSpan={6}>{MONTHS_SHORT[r.week.month]} 2026 <span className={styles.arrow}>{collapsed ? '▶' : '▼'}</span></td>
+                          </tr>
+                        )}
+                        {!collapsed && (
+                          <WeekRow
+                            r={r}
+                            onToggle={toggleExpand}
+                            isExpIn={isExpanded(r.week.start,'in')}
+                            isExpOut={isExpanded(r.week.start,'out')}
+                          />
+                        )}
+                      </Fragment>
+                    )
                   })
                 })()}
               </tbody>
@@ -233,55 +307,5 @@ export default function ForecastPage({ page, setPage }) {
         </div>
       )}}
     </Layout>
-  )
-}
-
-function CellItems({ items, type, onToggle, isOpen }) {
-  const total = items.reduce((s,z) => s + Number(z.amount), 0)
-  const cls = type === 'in' ? 'num-in' : 'num-out'
-  const sign = type === 'in' ? '+' : '-'
-  if (items.length === 1) {
-    const z = items[0]; const cat = z.subcat_name || z.cat_name || ''
-    return (
-      <div className={styles.cellSingle}>
-        <span className={cls}>{sign}{rp(total)}</span>
-        <span className={styles.cellName}>{z.name}{cat ? ` · ${cat}` : ''}{z.is_rec && <span className="badge badge-rec" style={{marginLeft:4}}>↻</span>}{z.is_est && <span className="badge badge-est" style={{marginLeft:4}}>Est</span>}</span>
-      </div>
-    )
-  }
-  return (
-    <div className={styles.cellMulti}>
-      <button className={styles.cellToggle} onClick={onToggle}>
-        <span className={cls}>{sign}{rp(total)}</span>
-        <span className={styles.cellCount}>{isOpen ? '▲' : '▼'} {items.length} transaksi</span>
-      </button>
-    </div>
-  )
-}
-
-function ExpandPanel({ items, type }) {
-  const cls = type === 'in' ? 'num-in' : 'num-out'
-  const total = items.reduce((s,z) => s + Number(z.amount), 0)
-  const SHOW = 6
-  const visible = items.slice(0, SHOW)
-  const rest = items.length - SHOW
-  return (
-    <tr className={styles.expandRow}>
-      <td colSpan={6}>
-        <div className={styles.expandInner}>
-          {visible.map((z,i) => (
-            <div key={i} className={styles.expandItem}>
-              <span className={styles.expandName}>{z.name}</span>
-              <span className={styles.expandCat}>{z.subcat_name || z.cat_name || ''}</span>
-              <span className={`${styles.expandAmt} ${cls}`}>{rp(z.amount)}</span>
-            </div>
-          ))}
-          <div className={styles.expandFooter}>
-            <span>{rest > 0 ? `+ ${rest} transaksi lainnya` : ''}</span>
-            <span className={cls}>{type === 'in' ? '+' : '-'}{rp(total)} total</span>
-          </div>
-        </div>
-      </td>
-    </tr>
   )
 }

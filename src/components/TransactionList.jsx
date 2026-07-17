@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { rp, fmtDateShort, ACCOUNT_LABELS } from '../lib/utils'
+import { useState, useMemo } from 'react'
+import { rp, fmtDateShort, ACCOUNT_LABELS, today } from '../lib/utils'
+import { uploadFile } from '../lib/db'
 import styles from './TransactionList.module.css'
 
 const ACCOUNTS = ['utama', 'buffer', 'petty', 'procurement']
@@ -9,6 +10,13 @@ export default function TransactionList({ transactions, onDelete, onUpdate, cate
   const [estOnly,  setEstOnly]  = useState(false)
   const [editId,   setEditId]   = useState(null)
   const [editData, setEditData] = useState({})
+  const [uploading,setUploading]= useState(false)
+
+  // Reminder — estimasi yang tanggalnya udah lewat
+  const overdueEst = useMemo(() => {
+    const todayStr = today()
+    return transactions.filter(t => t.is_est && t.date < todayStr)
+  }, [transactions])
 
   const filtered = [...transactions]
     .filter(t => {
@@ -23,14 +31,16 @@ export default function TransactionList({ transactions, onDelete, onUpdate, cate
   function startEdit(t) {
     setEditId(t.id)
     setEditData({
-      name:        t.name,
-      amount:      t.amount,
-      date:        t.date,
-      type:        t.type,
-      account:     t.account,
-      cat_id:      t.cat_id      || '',
-      subcat_id:   t.subcat_id   || '',
-      is_est:      t.is_est,
+      name:       t.name,
+      amount:     t.amount,
+      date:       t.date,
+      type:       t.type,
+      account:    t.account,
+      cat_id:     t.cat_id     || '',
+      subcat_id:  t.subcat_id  || '',
+      is_est:     t.is_est,
+      file_url:   t.file_url   || '',
+      file_name:  t.file_name  || '',
     })
   }
 
@@ -54,9 +64,25 @@ export default function TransactionList({ transactions, onDelete, onUpdate, cate
       subcat_id:   editData.subcat_id || null,
       subcat_name: subcat?.name       || null,
       is_est:      editData.is_est,
+      file_url:    editData.file_url  || null,
+      file_name:   editData.file_name || null,
     })
     setEditId(null)
     setEditData({})
+  }
+
+  async function handleFileUpload(e) {
+    const file = e.target.files[0]
+    if (!file) return
+    setUploading(true)
+    try {
+      const { name, url } = await uploadFile(file)
+      setEditData(p => ({ ...p, file_url: url, file_name: name }))
+    } catch(err) {
+      alert('Gagal upload: ' + err.message)
+    } finally {
+      setUploading(false)
+    }
   }
 
   const filteredCats = categories.filter(c => c.type === editData.type)
@@ -65,6 +91,18 @@ export default function TransactionList({ transactions, onDelete, onUpdate, cate
 
   return (
     <div className={styles.wrap}>
+
+      {/* REMINDER ESTIMASI LEWAT TANGGAL */}
+      {overdueEst.length > 0 && (
+        <div className={styles.reminder}>
+          <span className={styles.reminderIcon}>⚠</span>
+          <span className={styles.reminderText}>
+            <b>{overdueEst.length} estimasi</b> sudah lewat tanggal — perlu diupdate
+          </span>
+          <button className={styles.reminderBtn} onClick={() => setEstOnly(true)}>Lihat</button>
+        </div>
+      )}
+
       <div className={styles.header}>
         <span className={styles.title}>Transaksi <span className={styles.count}>({transactions.length})</span></span>
         {estCount > 0 && (
@@ -93,67 +131,87 @@ export default function TransactionList({ transactions, onDelete, onUpdate, cate
           </div>
         )}
 
-        {filtered.map(t => (
-          <div
-            key={t.id}
-            className={`${styles.item} ${t.is_est ? styles.itemEst : t.type === 'in' ? styles.itemIn : styles.itemOut}`}
-          >
-            {editId === t.id ? (
-              <div className={styles.editForm}>
-                <div className={styles.editTypeRow}>
-                  <button className={`${styles.typeBtn} ${editData.type==='in'?styles.typeBtnIn:''}`} onClick={()=>setEditData(p=>({...p,type:'in',cat_id:'',subcat_id:''}))}>Masuk</button>
-                  <button className={`${styles.typeBtn} ${editData.type==='out'?styles.typeBtnOut:''}`} onClick={()=>setEditData(p=>({...p,type:'out',cat_id:'',subcat_id:''}))}>Keluar</button>
-                </div>
-                <input value={editData.name} onChange={e=>setEditData(p=>({...p,name:e.target.value}))} placeholder="Nama transaksi" className={styles.editInput} />
-                <input type="number" value={editData.amount} onChange={e=>setEditData(p=>({...p,amount:e.target.value}))} placeholder="Jumlah" className={styles.editInput} />
-                <input type="date" value={editData.date} onChange={e=>setEditData(p=>({...p,date:e.target.value}))} className={styles.editInput} />
-                <select value={editData.account} onChange={e=>setEditData(p=>({...p,account:e.target.value}))} className={styles.editInput}>
-                  {ACCOUNTS.map(a=><option key={a} value={a}>{ACCOUNT_LABELS[a]}</option>)}
-                </select>
-                <select value={editData.cat_id} onChange={e=>setEditData(p=>({...p,cat_id:e.target.value,subcat_id:''}))} className={styles.editInput}>
-                  <option value="">— Kategori —</option>
-                  {filteredCats.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-                {subcats.length > 0 && (
-                  <select value={editData.subcat_id} onChange={e=>setEditData(p=>({...p,subcat_id:e.target.value}))} className={styles.editInput}>
-                    <option value="">— Subkategori —</option>
-                    {subcats.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
+        {filtered.map(t => {
+          const isOverdue = t.is_est && t.date < today()
+          return (
+            <div
+              key={t.id}
+              className={`${styles.item} ${t.is_est ? styles.itemEst : t.type === 'in' ? styles.itemIn : styles.itemOut} ${isOverdue ? styles.itemOverdue : ''}`}
+            >
+              {editId === t.id ? (
+                <div className={styles.editForm}>
+                  <div className={styles.editTypeRow}>
+                    <button className={`${styles.typeBtn} ${editData.type==='in'?styles.typeBtnIn:''}`} onClick={()=>setEditData(p=>({...p,type:'in',cat_id:'',subcat_id:''}))}>Masuk</button>
+                    <button className={`${styles.typeBtn} ${editData.type==='out'?styles.typeBtnOut:''}`} onClick={()=>setEditData(p=>({...p,type:'out',cat_id:'',subcat_id:''}))}>Keluar</button>
+                  </div>
+                  <input value={editData.name} onChange={e=>setEditData(p=>({...p,name:e.target.value}))} placeholder="Nama transaksi" className={styles.editInput} />
+                  <input type="number" value={editData.amount} onChange={e=>setEditData(p=>({...p,amount:e.target.value}))} placeholder="Jumlah" className={styles.editInput} />
+                  <input type="date" value={editData.date} onChange={e=>setEditData(p=>({...p,date:e.target.value}))} className={styles.editInput} />
+                  <select value={editData.account} onChange={e=>setEditData(p=>({...p,account:e.target.value}))} className={styles.editInput}>
+                    {ACCOUNTS.map(a=><option key={a} value={a}>{ACCOUNT_LABELS[a]}</option>)}
                   </select>
-                )}
-                <label className={styles.estCheck}>
-                  <input type="checkbox" checked={editData.is_est} onChange={e=>setEditData(p=>({...p,is_est:e.target.checked}))} />
-                  <span>Estimasi</span>
-                </label>
-                <div className={styles.editBtns}>
-                  <button className={styles.confBtn} onClick={()=>confirmEdit(t)}>✓ Simpan</button>
-                  <button className={styles.cancBtn} onClick={cancelEdit}>Batal</button>
-                </div>
-              </div>
-            ) : (
-              <>
-                <div className={styles.itemInfo}>
-                  <div className={styles.itemName}>
-                    {t.name}
-                    {t.is_est && <span className="badge badge-est">Est</span>}
+                  <select value={editData.cat_id} onChange={e=>setEditData(p=>({...p,cat_id:e.target.value,subcat_id:''}))} className={styles.editInput}>
+                    <option value="">— Kategori —</option>
+                    {filteredCats.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                  {subcats.length > 0 && (
+                    <select value={editData.subcat_id} onChange={e=>setEditData(p=>({...p,subcat_id:e.target.value}))} className={styles.editInput}>
+                      <option value="">— Subkategori —</option>
+                      {subcats.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                  )}
+                  <label className={styles.estCheck}>
+                    <input type="checkbox" checked={editData.is_est} onChange={e=>setEditData(p=>({...p,is_est:e.target.checked}))} />
+                    <span>Estimasi</span>
+                  </label>
+
+                  {/* ATTACH BUKTI */}
+                  <div className={styles.attachRow}>
+                    {editData.file_url ? (
+                      <div className={styles.attachPreview}>
+                        <a href={editData.file_url} target="_blank" rel="noreferrer" className={styles.attachLink}>📎 {editData.file_name || 'Bukti'}</a>
+                        <button className={styles.attachRemove} onClick={()=>setEditData(p=>({...p,file_url:'',file_name:''}))}>×</button>
+                      </div>
+                    ) : (
+                      <label className={styles.attachBtn}>
+                        {uploading ? 'Mengupload...' : '📎 Attach bukti'}
+                        <input type="file" accept="image/*,.pdf" onChange={handleFileUpload} style={{display:'none'}} disabled={uploading} />
+                      </label>
+                    )}
                   </div>
-                  <div className={styles.itemMeta}>
-                    <span className={styles.acctBadge}>{ACCOUNT_LABELS[t.account] || t.account}</span>
-                    {t.subcat_name || t.cat_name ? <span>{t.subcat_name || t.cat_name}</span> : null}
-                    <span>{fmtDateShort(t.date)}</span>
-                    <span className={t.type === 'in' ? styles.amtIn : styles.amtOut}>
-                      {t.type === 'in' ? '+' : '-'}{rp(t.amount)}
-                    </span>
+
+                  <div className={styles.editBtns}>
+                    <button className={styles.confBtn} onClick={()=>confirmEdit(t)}>✓ Simpan</button>
+                    <button className={styles.cancBtn} onClick={cancelEdit}>Batal</button>
                   </div>
                 </div>
-                <div className={styles.itemActions}>
-                  {t.file_url && <a href={t.file_url} target="_blank" rel="noreferrer" className={styles.iconBtn}>📎</a>}
-                  <button className={styles.editBtn} onClick={()=>startEdit(t)} title="Edit">✎</button>
-                  <button className={styles.iconBtn} onClick={()=>onDelete(t.id)} title="Hapus">×</button>
-                </div>
-              </>
-            )}
-          </div>
-        ))}
+              ) : (
+                <>
+                  <div className={styles.itemInfo}>
+                    <div className={styles.itemName}>
+                      {t.name}
+                      {t.is_est && <span className="badge badge-est">Est</span>}
+                      {isOverdue && <span className={styles.overdueTag}>Lewat!</span>}
+                    </div>
+                    <div className={styles.itemMeta}>
+                      <span className={styles.acctBadge}>{ACCOUNT_LABELS[t.account] || t.account}</span>
+                      {t.subcat_name || t.cat_name ? <span>{t.subcat_name || t.cat_name}</span> : null}
+                      <span>{fmtDateShort(t.date)}</span>
+                      <span className={t.type === 'in' ? styles.amtIn : styles.amtOut}>
+                        {t.type === 'in' ? '+' : '-'}{rp(t.amount)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className={styles.itemActions}>
+                    {t.file_url && <a href={t.file_url} target="_blank" rel="noreferrer" className={styles.iconBtn} title={t.file_name}>📎</a>}
+                    <button className={styles.editBtn} onClick={()=>startEdit(t)} title="Edit">✎</button>
+                    <button className={styles.iconBtn} onClick={()=>onDelete(t.id)} title="Hapus">×</button>
+                  </div>
+                </>
+              )}
+            </div>
+          )
+        })}
       </div>
     </div>
   )

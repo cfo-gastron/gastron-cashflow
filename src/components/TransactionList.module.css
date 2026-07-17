@@ -46,3 +46,24 @@
 .estCheck { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); cursor: pointer; }
 .estCheck input { width: auto; cursor: pointer; }
 .editBtns { display: flex; gap: 5px; margin-top: 2px; }
+
+/* REMINDER */
+.reminder { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--amber-light); border-bottom: 1px solid var(--amber-border); flex-shrink: 0; }
+.reminderIcon { font-size: 13px; flex-shrink: 0; }
+.reminderText { font-size: 11px; color: var(--amber); flex: 1; }
+.reminderBtn { font-size: 10px; font-weight: 700; color: var(--amber); background: none; border: 1px solid var(--amber-border); border-radius: var(--r); padding: 2px 8px; cursor: pointer; font-family: var(--font); white-space: nowrap; }
+.reminderBtn:hover { background: var(--amber-border); }
+
+/* OVERDUE */
+.itemOverdue { border-left: 2px solid var(--amber) !important; }
+.overdueTag { background: var(--amber-light); color: var(--amber); font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 100px; border: 1px solid var(--amber-border); }
+
+/* ATTACH */
+.attachRow { display: flex; align-items: center; }
+.attachBtn { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: var(--r); border: 1px dashed var(--border2); background: none; color: var(--text3); font-size: 11px; cursor: pointer; font-family: var(--font); transition: all .15s; }
+.attachBtn:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-light); }
+.attachPreview { display: flex; align-items: center; gap: 6px; }
+.attachLink { font-size: 11px; color: var(--blue); text-decoration: none; }
+.attachLink:hover { text-decoration: underline; }
+.attachRemove { background: none; border: none; color: var(--text3); font-size: 14px; cursor: pointer; padding: 0; line-height: 1; }
+.attachRemove:hover { color: var(--red); }

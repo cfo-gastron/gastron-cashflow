@@ -6,15 +6,16 @@ const AppContext = createContext(null)
 
 export function AppProvider({ children }) {
   const [transactions, setTransactions] = useState([])
-  const [recurring, setRecurring] = useState([])
-  const [categories, setCategories] = useState([])
-  const [saldoAwal, setSaldoAwal] = useState(0)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [recurring,    setRecurring]    = useState([])
+  const [categories,   setCategories]   = useState([])
+  const [saldoAwal,    setSaldoAwal]    = useState(0)
+  const [loading,      setLoading]      = useState(true)
+  const [error,        setError]        = useState(null)
 
   const load = useCallback(async () => {
     try {
       setLoading(true)
+      setError(null)
       const [txs, recs, cats, saldo] = await Promise.all([
         getTransactions({ year: 2026 }),
         getRecurring(),
@@ -35,13 +36,11 @@ export function AppProvider({ children }) {
 
   useEffect(() => { load() }, [load])
 
-  // Semua transaksi + recurring yang di-expand
   const allItems = [
     ...transactions,
     ...expandRecurring(recurring),
   ]
 
-  // Update saldo awal
   const updateSaldo = async (val) => {
     setSaldoAwal(val)
     await setConfig('saldo_awal', val)

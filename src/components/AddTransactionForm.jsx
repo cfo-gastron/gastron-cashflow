@@ -5,7 +5,7 @@ import styles from './AddTransactionForm.module.css'
 
 const ACCOUNTS = ['utama', 'buffer', 'petty', 'procurement']
 
-export default function AddTransactionForm({ categories, onAdd, allWeeks }) {
+export default function AddTransactionForm({ categories, onAdd, allWeeks, transactions = [] }) {
   const [mode, setMode] = useState('ai') // 'ai' | 'manual'
   const [mType, setMType] = useState('out')
 
@@ -59,6 +59,17 @@ export default function AddTransactionForm({ categories, onAdd, allWeeks }) {
   async function handleManualSubmit() {
     if (!mName.trim()) { alert('Nama harus diisi'); return }
     if (!mAmount || parseFloat(mAmount) <= 0) { alert('Jumlah harus lebih dari 0'); return }
+    // Validasi duplikat
+    const amt = parseFloat(mAmount)
+    const dup = transactions.find(t =>
+      t.name.toLowerCase() === mName.trim().toLowerCase() &&
+      t.date === mDate &&
+      Number(t.amount) === amt &&
+      t.type === mType
+    )
+    if (dup) {
+      if (!confirm(`Transaksi serupa sudah ada:\n"${dup.name}" — ${dup.date} — Rp ${amt.toLocaleString('id')}\n\nTetap tambahkan?`)) return
+    }
     setSaving(true)
     try {
       const tx = buildTxFromManual()
