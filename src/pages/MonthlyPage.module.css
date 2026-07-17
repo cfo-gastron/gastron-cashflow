@@ -20,6 +20,7 @@ td:first-child { text-align: left; position: sticky; left: 0; background: inheri
 .catHdr td { font-weight: 600; color: var(--text); background: var(--bg2); }
 .catHdr td:first-child { background: var(--bg2); }
 .subRow td { color: var(--text2); font-size: 11px; }
+.subRow td:first-child { background: var(--white); }
 .totalRow td { font-weight: 700; color: var(--text); background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
 .totalRow td:first-child { background: var(--bg2); }
 .highlight td { background: var(--green-light); }
@@ -30,6 +31,7 @@ td:first-child { text-align: left; position: sticky; left: 0; background: inheri
 .marginRow td { font-size: 11px; color: var(--text3); background: var(--bg2); }
 .marginRow td:first-child { background: var(--bg2); }
 .gap td { height: 6px; background: var(--bg); border: none; padding: 0; }
+.gap td:first-child { background: var(--bg); box-shadow: none; }
 .pos { color: var(--green); font-family: var(--mono); font-size: 11px; font-weight: 600; }
 .neg { color: var(--red);   font-family: var(--mono); font-size: 11px; font-weight: 600; }
 .zero { color: var(--text3); }

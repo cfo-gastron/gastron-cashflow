@@ -55,9 +55,40 @@ function CellItems({ items, type, onToggle, isOpen }) {
   )
 }
 
-function WeekRow({ r, onToggle, isExpIn, isExpOut, isHist }) {
+function ExpandItems({ items, type, onEdit }) {
+  const [showAll, setShowAll] = useState(false)
+  const cls    = type === 'in' ? 'num-in' : 'num-out'
+  const sign   = type === 'in' ? '+' : '-'
+  const SHOW   = 6
+  const total  = items.reduce((s,z) => s+Number(z.amount), 0)
+  const visible = showAll ? items : items.slice(0, SHOW)
+  const rest   = items.length - SHOW
+
+  return (
+    <div className={styles.expandInner}>
+      {visible.map((z,i) => (
+        <div key={i} className={styles.expandItem} onClick={() => onEdit && !z.is_rec && onEdit(z)} style={{cursor: !z.is_rec ? 'pointer' : 'default'}}>
+          <span className={styles.expandName}>{z.name}{z.is_est && <span className="badge badge-est" style={{marginLeft:4}}>Est</span>}</span>
+          <span className={styles.expandCat}>{z.subcat_name||z.cat_name||''}</span>
+          <span className={`${styles.expandAmt} ${cls}`}>{rp(z.amount)}</span>
+          {!z.is_rec && <span className={styles.expandEdit}>✎</span>}
+        </div>
+      ))}
+      <div className={styles.expandFooter}>
+        {rest > 0 && !showAll
+          ? <button className={styles.showAllBtn} onClick={() => setShowAll(true)}>+ {rest} lainnya</button>
+          : rest > 0 && showAll
+          ? <button className={styles.showAllBtn} onClick={() => setShowAll(false)}>Sembunyikan</button>
+          : <span />
+        }
+        <span className={cls}>{sign}{rp(total)} total</span>
+      </div>
+    </div>
+  )
+}
+
+function WeekRow({ r, onToggle, isExpIn, isExpOut, isHist, onEdit }) {
   const cls = r.isCur ? styles.curWeek : r.status==='defisit' ? styles.rowDanger : r.status==='mepet' ? styles.rowWarn : ''
-  const SHOW = 6
   return (
     <Fragment>
       <tr className={`${isHist ? styles.histRow : styles.weekRow} ${cls}`}>
@@ -80,40 +111,12 @@ function WeekRow({ r, onToggle, isExpIn, isExpOut, isHist }) {
       </tr>
       {isExpIn && r.ins.length > 1 && (
         <tr className={styles.expandRow}>
-          <td colSpan={6}>
-            <div className={styles.expandInner}>
-              {r.ins.slice(0,SHOW).map((z,i) => (
-                <div key={i} className={styles.expandItem}>
-                  <span className={styles.expandName}>{z.name}</span>
-                  <span className={styles.expandCat}>{z.subcat_name||z.cat_name||''}</span>
-                  <span className={`${styles.expandAmt} num-in`}>{rp(z.amount)}</span>
-                </div>
-              ))}
-              <div className={styles.expandFooter}>
-                <span>{r.ins.length > SHOW ? `+ ${r.ins.length-SHOW} lainnya` : ''}</span>
-                <span className="num-in">+{rp(r.ins.reduce((s,z)=>s+Number(z.amount),0))} total</span>
-              </div>
-            </div>
-          </td>
+          <td colSpan={6}><ExpandItems items={r.ins}  type="in"  onEdit={onEdit} /></td>
         </tr>
       )}
       {isExpOut && r.outs.length > 1 && (
         <tr className={styles.expandRow}>
-          <td colSpan={6}>
-            <div className={styles.expandInner}>
-              {r.outs.slice(0,SHOW).map((z,i) => (
-                <div key={i} className={styles.expandItem}>
-                  <span className={styles.expandName}>{z.name}</span>
-                  <span className={styles.expandCat}>{z.subcat_name||z.cat_name||''}</span>
-                  <span className={`${styles.expandAmt} num-out`}>{rp(z.amount)}</span>
-                </div>
-              ))}
-              <div className={styles.expandFooter}>
-                <span>{r.outs.length > SHOW ? `+ ${r.outs.length-SHOW} lainnya` : ''}</span>
-                <span className="num-out">-{rp(r.outs.reduce((s,z)=>s+Number(z.amount),0))} total</span>
-              </div>
-            </div>
-          </td>
+          <td colSpan={6}><ExpandItems items={r.outs} type="out" onEdit={onEdit} /></td>
         </tr>
       )}
     </Fragment>
@@ -129,6 +132,7 @@ export default function ForecastPage({ page, setPage }) {
   })
   const [collapsedHist, setCollapsedHist] = useState(true)
   const [expandedRows, setExpandedRows] = useState({})
+  const [editModal,    setEditModal]    = useState(null) // transaksi yang lagi diedit
 
   function toggleExpand(weekStart, type) {
     const key = `${weekStart}_${type}`
@@ -167,16 +171,6 @@ export default function ForecastPage({ page, setPage }) {
     return { histRows, rows }
   }, [transactions, allItems, saldoAwal])
 
-  const summary = useMemo(() => {
-    const curMonth = new Date().getMonth()
-    const curRow = tableData.rows.find(r => r.isCur)
-    const saldoNow = curRow?.close ?? saldoAwal
-    const totalIn  = allItems.filter(z => z.type === 'in'  && new Date(z.date).getMonth() === curMonth).reduce((s,z) => s + Number(z.amount), 0)
-    const totalOut = allItems.filter(z => z.type === 'out' && new Date(z.date).getMonth() === curMonth).reduce((s,z) => s + Number(z.amount), 0)
-    const forecast = tableData.rows[tableData.rows.length - 1]?.close ?? 0
-    return { saldoNow, totalIn, totalOut, forecast, curMonth }
-  }, [tableData, allItems, saldoAwal])
-
   const chips = useMemo(() => ({
     defisit: tableData.rows.filter(r => r.status === 'defisit').length,
     mepet:   tableData.rows.filter(r => r.status === 'mepet').length,
@@ -207,29 +201,6 @@ export default function ForecastPage({ page, setPage }) {
     <Layout page={page} setPage={setPage} sidebar={sidebarContent}>
       {{ content: (
         <div className={styles.wrap}>
-          <div className={styles.cards}>
-            <div className={styles.card}>
-              <div className={styles.cardLabel}>Saldo Sekarang</div>
-              <div className={`${styles.cardVal} ${styles.blue}`}>{rp(summary.saldoNow)}</div>
-              <div className={styles.cardSub}>Minggu ini</div>
-            </div>
-            <div className={styles.card}>
-              <div className={styles.cardLabel}>Masuk {MONTHS_SHORT[summary.curMonth]}</div>
-              <div className={`${styles.cardVal} ${styles.green}`}>{rp(summary.totalIn)}</div>
-              <div className={styles.cardSub}>Bulan berjalan</div>
-            </div>
-            <div className={styles.card}>
-              <div className={styles.cardLabel}>Keluar {MONTHS_SHORT[summary.curMonth]}</div>
-              <div className={`${styles.cardVal} ${styles.red}`}>{rp(summary.totalOut)}</div>
-              <div className={styles.cardSub}>Bulan berjalan</div>
-            </div>
-            <div className={styles.card}>
-              <div className={styles.cardLabel}>Proyeksi Des 2026</div>
-              <div className={styles.cardVal}>{rp(summary.forecast)}</div>
-              <div className={styles.cardSub}>Akhir tahun</div>
-            </div>
-          </div>
-
           <div className={styles.statusBar}>
             {chips.defisit > 0 && <span className="chip chip-danger">⚠ {chips.defisit} minggu defisit</span>}
             {chips.mepet   > 0 && <span className="chip chip-warn">⚡ {chips.mepet} minggu mepet</span>}
@@ -266,6 +237,7 @@ export default function ForecastPage({ page, setPage }) {
                               isExpIn={isExpanded(`hist_${r.week.start}`,'in')}
                               isExpOut={isExpanded(`hist_${r.week.start}`,'out')}
                               isHist={true}
+                              onEdit={setEditModal}
                             />
                           ))}
                         </Fragment>
@@ -306,6 +278,110 @@ export default function ForecastPage({ page, setPage }) {
           </div>
         </div>
       )}}
+      {editModal && (
+        <EditModal
+          tx={editModal}
+          categories={categories}
+          onUpdate={handleUpdate}
+          onClose={() => setEditModal(null)}
+        />
+      )}
     </Layout>
+  )
+}
+
+function EditModal({ tx, categories, onUpdate, onClose }) {
+  const [data, setData] = useState({
+    name:      tx.name,
+    amount:    tx.amount,
+    date:      tx.date,
+    type:      tx.type,
+    account:   tx.account,
+    cat_id:    tx.cat_id    || '',
+    subcat_id: tx.subcat_id || '',
+    is_est:    tx.is_est,
+  })
+  const [saving, setSaving] = useState(false)
+
+  const filteredCats = categories.filter(c => c.type === data.type)
+  const selectedCat  = filteredCats.find(c => c.id === data.cat_id)
+  const subcats      = selectedCat?.subcats || []
+  const ACCOUNTS     = ['utama','buffer','petty','procurement']
+  const ACCT_LABELS  = { utama:'Utama', buffer:'Buffer', petty:'Petty Cash', procurement:'Procurement' }
+
+  async function handleSave() {
+    const amount = parseFloat(data.amount)
+    if (!data.name.trim() || !amount || amount <= 0) return
+    setSaving(true)
+    try {
+      const cat    = filteredCats.find(c => c.id === data.cat_id)
+      const subcat = (cat?.subcats||[]).find(s => s.id === data.subcat_id)
+      await onUpdate(tx.id, {
+        name:        data.name.trim(),
+        amount,
+        date:        data.date,
+        type:        data.type,
+        account:     data.account,
+        cat_id:      data.cat_id    || null,
+        cat_name:    cat?.name      || null,
+        subcat_id:   data.subcat_id || null,
+        subcat_name: subcat?.name   || null,
+        is_est:      data.is_est,
+      })
+      onClose()
+    } catch(e) { alert('Gagal: ' + e.message) }
+    finally { setSaving(false) }
+  }
+
+  return (
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.2)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:200,backdropFilter:'blur(2px)'}} onClick={onClose}>
+      <div style={{background:'var(--white)',border:'1px solid var(--border)',borderRadius:'var(--r2)',width:360,maxWidth:'90vw',boxShadow:'var(--shadow-md)',display:'flex',flexDirection:'column'}} onClick={e=>e.stopPropagation()}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 16px',borderBottom:'1px solid var(--border)'}}>
+          <span style={{fontSize:13,fontWeight:700,color:'var(--text)'}}>Edit Transaksi</span>
+          <button onClick={onClose} style={{background:'none',border:'none',fontSize:18,color:'var(--text3)',cursor:'pointer',padding:0}}>×</button>
+        </div>
+        <div style={{padding:'12px 16px',display:'flex',flexDirection:'column',gap:8}}>
+          <div style={{display:'flex',gap:4}}>
+            {['in','out'].map(t => (
+              <button key={t} onClick={()=>setData(p=>({...p,type:t,cat_id:'',subcat_id:''}))}
+                style={{flex:1,padding:'5px',borderRadius:'var(--r)',border:'1px solid',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'var(--font)',
+                  background: data.type===t ? (t==='in'?'var(--green-light)':'var(--red-light)') : 'none',
+                  borderColor: data.type===t ? (t==='in'?'var(--green-border)':'var(--red-border)') : 'var(--border)',
+                  color: data.type===t ? (t==='in'?'var(--green)':'var(--red)') : 'var(--text3)'
+                }}>
+                {t==='in'?'Masuk':'Keluar'}
+              </button>
+            ))}
+          </div>
+          <input value={data.name} onChange={e=>setData(p=>({...p,name:e.target.value}))} placeholder="Nama" style={{fontSize:12,padding:'6px 9px'}} />
+          <input type="number" value={data.amount} onChange={e=>setData(p=>({...p,amount:e.target.value}))} placeholder="Jumlah" style={{fontSize:12,padding:'6px 9px'}} />
+          <input type="date" value={data.date} onChange={e=>setData(p=>({...p,date:e.target.value}))} style={{fontSize:12,padding:'6px 9px'}} />
+          <select value={data.account} onChange={e=>setData(p=>({...p,account:e.target.value}))} style={{fontSize:12,padding:'6px 9px'}}>
+            {ACCOUNTS.map(a=><option key={a} value={a}>{ACCT_LABELS[a]}</option>)}
+          </select>
+          <select value={data.cat_id} onChange={e=>setData(p=>({...p,cat_id:e.target.value,subcat_id:''}))} style={{fontSize:12,padding:'6px 9px'}}>
+            <option value="">— Kategori —</option>
+            {filteredCats.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          {subcats.length > 0 && (
+            <select value={data.subcat_id} onChange={e=>setData(p=>({...p,subcat_id:e.target.value}))} style={{fontSize:12,padding:'6px 9px'}}>
+              <option value="">— Subkategori —</option>
+              {subcats.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          )}
+          <label style={{display:'flex',alignItems:'center',gap:6,fontSize:11,color:'var(--text2)',cursor:'pointer'}}>
+            <input type="checkbox" checked={data.is_est} onChange={e=>setData(p=>({...p,is_est:e.target.checked}))} style={{width:'auto'}} />
+            Estimasi
+          </label>
+        </div>
+        <div style={{display:'flex',gap:6,padding:'10px 16px',borderTop:'1px solid var(--border)'}}>
+          <button onClick={handleSave} disabled={saving}
+            style={{flex:1,padding:'7px',borderRadius:'var(--r)',border:'none',background:'var(--red)',color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'var(--font)',opacity:saving?.5:1}}>
+            {saving?'Menyimpan...':'✓ Simpan'}
+          </button>
+          <button onClick={onClose} style={{padding:'7px 12px',borderRadius:'var(--r)',border:'1px solid var(--border)',background:'none',color:'var(--text2)',fontSize:12,cursor:'pointer',fontFamily:'var(--font)'}}>Batal</button>
+        </div>
+      </div>
+    </div>
   )
 }

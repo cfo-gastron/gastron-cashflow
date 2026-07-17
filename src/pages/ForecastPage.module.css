@@ -1,14 +1,6 @@
 .wrap { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
 
-/* CARDS */
-.cards { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; padding: 10px 18px; background: var(--white); border-bottom: 1px solid var(--border); flex-shrink: 0; }
-.card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 10px 12px; }
-.cardLabel { font-size: 9px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 4px; }
-.cardVal { font-family: var(--mono); font-size: 14px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cardVal.green { color: var(--green); }
-.cardVal.red   { color: var(--red);   }
-.cardVal.blue  { color: var(--blue);  }
-.cardSub { font-size: 9px; color: var(--text3); margin-top: 2px; }
+
 
 /* STATUS BAR */
 .statusBar { display: flex; align-items: center; gap: 8px; padding: 7px 18px; background: var(--bg); border-bottom: 1px solid var(--border); flex-shrink: 0; }
@@ -18,14 +10,14 @@
 table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 thead { position: sticky; top: 0; z-index: 10; }
 thead tr { background: var(--bg); }
-th { padding: 7px 12px; text-align: left; font-size: 9px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: .08em; border-bottom: 1px solid var(--border); white-space: nowrap; }
-th:nth-child(1) { width: 120px; }
-th:nth-child(2) { width: 140px; }
-th:nth-child(3) { width: 200px; }
-th:nth-child(4) { width: 200px; }
-th:nth-child(5) { width: 140px; }
-th:nth-child(6) { width: 90px;  }
-td { padding: 7px 12px; border-bottom: 1px solid #f0ede9; vertical-align: middle; background: var(--white); }
+th { padding: 6px 10px; text-align: left; font-size: 9px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: .08em; border-bottom: 1px solid var(--border); white-space: nowrap; }
+th:nth-child(1) { width: 90px; }
+th:nth-child(2) { width: 115px; }
+th:nth-child(3) { width: 190px; }
+th:nth-child(4) { width: 190px; }
+th:nth-child(5) { width: 115px; }
+th:nth-child(6) { width: 75px;  }
+td { padding: 5px 10px; border-bottom: 1px solid #f0ede9; vertical-align: middle; background: var(--white); }
 
 .monthRow td { background: var(--bg); color: var(--text3); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; padding: 5px 12px; cursor: pointer; user-select: none; }
 .monthRow:hover td { background: var(--bg3); color: var(--text2); }
@@ -59,10 +51,16 @@ td { padding: 7px 12px; border-bottom: 1px solid #f0ede9; vertical-align: middle
 
 /* EXPAND PANEL */
 .expandRow td { background: var(--bg2); padding: 0; border-bottom: 1px solid var(--border); }
-.expandInner { padding: 8px 12px 8px 120px; display: flex; flex-direction: column; gap: 0; }
+.expandInner { padding: 6px 12px 6px 14px; display: flex; flex-direction: column; gap: 0; }
 .expandItem { display: flex; align-items: baseline; gap: 8px; padding: 4px 0; border-bottom: 0.5px solid var(--border); }
 .expandItem:last-child { border-bottom: none; }
 .expandName { font-size: 11px; color: var(--text2); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .expandCat  { font-size: 10px; color: var(--text3); flex-shrink: 0; background: var(--bg3); padding: 1px 5px; border-radius: 4px; }
 .expandAmt  { font-family: var(--mono); font-size: 11px; flex-shrink: 0; font-weight: 500; }
 .expandFooter { display: flex; justify-content: space-between; align-items: center; padding-top: 6px; font-size: 10px; color: var(--text3); }
+
+.showAllBtn { background: none; border: none; color: var(--blue); font-size: 10px; font-weight: 600; cursor: pointer; padding: 0; font-family: var(--font); text-decoration: underline; text-underline-offset: 2px; }
+.showAllBtn:hover { opacity: .7; }
+.expandEdit { font-size: 11px; color: var(--text3); opacity: 0; margin-left: 4px; flex-shrink: 0; transition: opacity .1s; }
+.expandItem:hover .expandEdit { opacity: 1; }
+.expandItem:hover { background: var(--bg2); border-radius: 4px; }
