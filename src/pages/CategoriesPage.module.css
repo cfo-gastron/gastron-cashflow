@@ -26,4 +26,4 @@
 .subInput { font-size: 11px; padding: 4px 8px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r); }
 .subAddBtn { width: 26px; height: 26px; border-radius: var(--r); border: 1px solid var(--border); background: none; color: var(--text2); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all .15s; }
 .subAddBtn:hover { background: var(--red); color: #fff; border-color: var(--red); }
-.empty { font-size: 11px; color: var(--text3); padding: 8px 0; }
+.empty { font-size: 11px; color: var(--text3); padding: 8px 0; }  

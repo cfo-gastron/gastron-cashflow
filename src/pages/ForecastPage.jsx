@@ -57,31 +57,47 @@ function CellItems({ items, type, onToggle, isOpen }) {
 
 function ExpandItems({ items, type, onEdit }) {
   const [showAll, setShowAll] = useState(false)
-  const cls    = type === 'in' ? 'num-in' : 'num-out'
-  const sign   = type === 'in' ? '+' : '-'
-  const SHOW   = 6
-  const total  = items.reduce((s,z) => s+Number(z.amount), 0)
+  const cls   = type === 'in' ? 'num-in' : 'num-out'
+  const sign  = type === 'in' ? '+' : '-'
+  const SHOW  = 6
+  const total = items.reduce((s,z) => s+Number(z.amount), 0)
   const visible = showAll ? items : items.slice(0, SHOW)
-  const rest   = items.length - SHOW
+  const rest  = items.length - SHOW
 
   return (
     <div className={styles.expandInner}>
-      {visible.map((z,i) => (
-        <div key={i} className={styles.expandItem} onClick={() => onEdit && !z.is_rec && onEdit(z)} style={{cursor: !z.is_rec ? 'pointer' : 'default'}}>
-          <span className={styles.expandName}>{z.name}{z.is_est && <span className="badge badge-est" style={{marginLeft:4}}>Est</span>}</span>
-          <span className={styles.expandCat}>{z.subcat_name||z.cat_name||''}</span>
-          <span className={`${styles.expandAmt} ${cls}`}>{rp(z.amount)}</span>
-          {!z.is_rec && <span className={styles.expandEdit}>✎</span>}
-        </div>
-      ))}
+      <table className={styles.expandTable}>
+        <tbody>
+          {visible.map((z,i) => (
+            <tr
+              key={i}
+              className={styles.expandRow}
+              onClick={() => onEdit && !z.is_rec && onEdit(z)}
+              style={{cursor: !z.is_rec ? 'pointer' : 'default'}}
+            >
+              <td className={styles.expandName}>
+                {z.name}
+                {z.is_est && <span className="badge badge-est" style={{marginLeft:4}}>Est</span>}
+              </td>
+              <td className={styles.expandCat}>{z.subcat_name||z.cat_name||''}</td>
+              <td className={styles.expandDate}>{z.date ? z.date.slice(5).replace('-',' ') : ''}</td>
+              <td className={`${styles.expandAmt} ${cls}`}>{sign}{rp(z.amount)}</td>
+              <td className={styles.expandEdit}>{!z.is_rec && '✎'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
       <div className={styles.expandFooter}>
         {rest > 0 && !showAll
-          ? <button className={styles.showAllBtn} onClick={() => setShowAll(true)}>+ {rest} lainnya</button>
+          ? <button className={styles.showAllBtn} onClick={e=>{e.stopPropagation();setShowAll(true)}}>▾ + {rest} lainnya</button>
           : rest > 0 && showAll
-          ? <button className={styles.showAllBtn} onClick={() => setShowAll(false)}>Sembunyikan</button>
+          ? <button className={styles.showAllBtn} onClick={e=>{e.stopPropagation();setShowAll(false)}}>▴ Sembunyikan</button>
           : <span />
         }
-        <span className={cls}>{sign}{rp(total)} total</span>
+        <div className={`${styles.totalPill} ${type==='out'?styles.totalPillOut:styles.totalPillIn}`}>
+          <span className={styles.totalLabel}>Total {type==='out'?'keluar':'masuk'}</span>
+          <span className={`${styles.totalVal} ${cls}`}>{sign}{rp(total)}</span>
+        </div>
       </div>
     </div>
   )
