@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext'
 import { addRecurring, deleteRecurring } from '../lib/db'
 import { rp, ACCOUNT_LABELS, MONTHS_SHORT } from '../lib/utils'
 import styles from './RecurringPage.module.css'
+import Layout from '../components/Layout'
 
 const ACCOUNTS = ['utama', 'buffer', 'petty', 'procurement']
 const ALL_MONTHS = Array.from({ length: 12 }, (_, i) => i)
@@ -58,10 +59,9 @@ export default function RecurringPage() {
 
   const womLabels = ['', 'Awal bulan (~tgl 1–7)', '~tgl 8–14', '~tgl 15–21', 'Akhir bulan (~tgl 22+)']
 
-  return (
-    <div className={styles.layout}>
-      <aside className={styles.sidebar}>
-        <div className={styles.sidebarTitle}>Tambah Recurring</div>
+  const sidebarContent = (
+    <aside className={styles.sidebar}>
+      <div className={styles.sidebarTitle}>Tambah Recurring</div>
 
         <div className={styles.typeRow}>
           <button className={`${styles.typeBtn} ${rType==='in'?styles.typeBtnIn:''}`} onClick={()=>{setRType('in');setRCatId('');setRSubcatId('')}}>Masuk</button>
@@ -112,37 +112,18 @@ export default function RecurringPage() {
           {saving ? 'Menyimpan...' : '+ Tambah Recurring'}
         </button>
         <div className={styles.hint}>Recurring muncul otomatis tiap bulan di tabel dengan tanda ↻</div>
-      </aside>
+    </aside>
+  )
 
+  return (
+    <Layout page={page} setPage={setPage} sidebar={sidebarContent} content={
       <div className={styles.main}>
         <div className={styles.mainTitle}>Recurring ({recurring.length})</div>
         <div className={styles.grid}>
           {!recurring.length && (
-            <div className="empty-state">Belum ada recurring. Tambah di sebelah kiri.</div>
-          )}
-          {recurring.map(r => {
-            const months = []
-            for (let m = r.start_month; m <= r.end_month; m++) months.push(m)
-            return (
-              <div key={r.id} className={`${styles.card} ${r.type==='in'?styles.cardIn:styles.cardOut}`}>
-                <div className={styles.cardInfo}>
-                  <div className={styles.cardName}>
-                    {r.name}
-                    <span className={styles.acct}>{ACCOUNT_LABELS[r.account]}</span>
-                    {(r.subcat_name||r.cat_name) && <span className={styles.cat}>{r.subcat_name||r.cat_name}</span>}
-                  </div>
-                  <div className={styles.cardSub}>{womLabels[r.week_of_month]} · {MONTHS_SHORT[r.start_month]} – {MONTHS_SHORT[r.end_month]}</div>
-                  <div className={styles.pills}>{months.map(m => <span key={m} className={styles.pill}>{MONTHS_SHORT[m]}</span>)}</div>
-                </div>
-                <div className={styles.cardRight}>
-                  <span className={r.type==='in'?styles.amtIn:styles.amtOut}>{r.type==='in'?'+':'-'}{rp(r.amount)}</span>
-                  <button className={styles.delBtn} onClick={()=>handleDelete(r.id)}>×</button>
-                </div>
-              </div>
-            )
-          })}
-        </div>
+            <div className="empty-state">Belum ada recurring. Tambah di sebelah kiri.
       </div>
-    </div>
+    }>
+    </Layout>
   )
 }

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useApp } from '../context/AppContext'
 import { upsertCategory, deleteCategory } from '../lib/db'
 import styles from './CategoriesPage.module.css'
+import Layout from '../components/Layout'
 
 export default function CategoriesPage() {
   const { categories, setCategories } = useApp()
@@ -52,7 +53,8 @@ export default function CategoriesPage() {
   const outCats = categories.filter(c => c.type === 'out')
 
   return (
-    <div className={styles.wrap}>
+    <Layout page={page} setPage={setPage} content={
+      <div className={styles.wrap}>
       <div className={styles.addForm}>
         <div className={styles.addTitle}>Tambah Kategori</div>
         <div className={styles.addRow}>
@@ -106,5 +108,7 @@ export default function CategoriesPage() {
         ))}
       </div>
     </div>
+    }>
+    </Layout>
   )
 }
