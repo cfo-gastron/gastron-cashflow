@@ -217,12 +217,12 @@ export default function ForecastPage({ page, setPage }) {
     <>
     <Layout page={page} setPage={setPage} sidebar={sidebarContent} content={
         <div className={styles.wrap}>
-          <div className={styles.statusBar}>
-            {chips.defisit > 0 && <span className="chip chip-danger">⚠ {chips.defisit} minggu defisit</span>}
-            {chips.mepet   > 0 && <span className="chip chip-warn">⚡ {chips.mepet} minggu mepet</span>}
-            {!chips.defisit && !chips.mepet && <span className="chip chip-ok">✓ Aman sampai Desember</span>}
-          </div>
-
+          {(chips.defisit > 0 || chips.mepet > 0) && (
+            <div className={styles.statusBar}>
+              {chips.defisit > 0 && <span className="chip chip-danger">⚠ {chips.defisit} minggu defisit</span>}
+              {chips.mepet   > 0 && <span className="chip chip-warn">⚡ {chips.mepet} minggu mepet</span>}
+            </div>
+          )}
           <div className={styles.tableWrap}>
             <table>
               <thead>

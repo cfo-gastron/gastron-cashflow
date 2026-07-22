@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useApp } from '../context/AppContext'
-import { rp } from '../lib/utils'
 import styles from './Layout.module.css'
 
 const TABS = [
@@ -12,17 +11,8 @@ const TABS = [
 ]
 
 export default function Layout({ page, setPage, sidebar, children, content }) {
-  const { saldoAwal, updateSaldo, loading } = useApp()
-  const [editSaldo, setEditSaldo]     = useState(false)
-  const [saldoInput, setSaldoInput]   = useState('')
+  const { loading } = useApp()
   const [sidebarOpen, setSidebarOpen] = useState(true)
-
-  function startEditSaldo() { setSaldoInput(saldoAwal); setEditSaldo(true) }
-  function saveSaldo() {
-    const v = parseFloat(saldoInput)
-    if (!isNaN(v)) updateSaldo(v)
-    setEditSaldo(false)
-  }
 
   const hasSidebar = !!sidebar
 
@@ -65,23 +55,6 @@ export default function Layout({ page, setPage, sidebar, children, content }) {
             )}
             <span className={styles.pageTitle}>{TABS.find(t => t.id === page)?.label}</span>
             <div className={styles.hdrRight}>
-              {editSaldo ? (
-                <div className={styles.saldoEdit}>
-                  <span className={styles.saldoLabel}>Saldo awal</span>
-                  <input
-                    type="number" value={saldoInput}
-                    onChange={e => setSaldoInput(e.target.value)}
-                    onBlur={saveSaldo}
-                    onKeyDown={e => e.key === 'Enter' && saveSaldo()}
-                    autoFocus className={styles.saldoInp}
-                  />
-                </div>
-              ) : (
-                <button className={styles.saldoBtn} onClick={startEditSaldo} title="Edit saldo awal">
-                  <span className={styles.saldoLabel}>Saldo awal</span>
-                  <span className={styles.saldoVal}>{rp(saldoAwal)}</span>
-                </button>
-              )}
               {children?.headerActions}
             </div>
           </header>
