@@ -82,7 +82,11 @@ function ExpandItems({ items, type, onEdit }) {
               <td className={styles.expandCat}>{z.subcat_name||z.cat_name||''}</td>
               <td className={styles.expandDate}>{z.date ? z.date.slice(5).replace('-',' ') : ''}</td>
               <td className={`${styles.expandAmt} ${cls}`}>{sign}{rp(z.amount)}</td>
-              <td className={styles.expandEdit}>{!z.is_rec && '✎'}</td>
+              <td className={styles.expandEdit}>
+                {!z.is_rec && (
+                  <span title="Edit" style={{fontSize:12,color:'var(--text3)'}}>✎</span>
+                )}
+              </td>
             </tr>
           ))}
         </tbody>
