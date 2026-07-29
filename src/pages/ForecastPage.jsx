@@ -32,19 +32,11 @@ const HIST_WEEKS = generateHistWeeks()
 const ALL_WEEKS = [...HIST_WEEKS, ...WEEKS]
 const TODAY_STR = today()
 
-function CellItems({ items, type, onToggle, isOpen }) {
+function CellItems({ items, type, onToggle, isOpen, onEdit }) {
   const total = items.reduce((s,z) => s + Number(z.amount), 0)
   const cls = type === 'in' ? 'num-in' : 'num-out'
   const sign = type === 'in' ? '+' : '-'
-  if (items.length === 1) {
-    const z = items[0]; const cat = z.subcat_name || z.cat_name || ''
-    return (
-      <div className={styles.cellSingle}>
-        <span className={cls}>{sign}{rp(total)}</span>
-        <span className={styles.cellName}>{z.name}{cat ? ` · ${cat}` : ''}{z.is_rec && <span className="badge badge-rec" style={{marginLeft:4}}>↻</span>}{z.is_est && <span className="badge badge-est" style={{marginLeft:4}}>Est</span>}</span>
-      </div>
-    )
-  }
+
   return (
     <div className={styles.cellMulti}>
       <button className={styles.cellToggle} onClick={onToggle}>
@@ -72,19 +64,23 @@ function ExpandItems({ items, type, onEdit }) {
             <tr
               key={i}
               className={styles.expandRow}
-              onClick={() => onEdit && !z.is_rec && onEdit(z)}
-              style={{cursor: !z.is_rec ? 'pointer' : 'default'}}
+              onClick={() => { console.log('clicked', z); onEdit && onEdit(z) }}
+              style={{cursor: 'pointer'}}
             >
-              <td className={styles.expandName}>
+              <td className={styles.expandName} style={z.is_est ? {color:'#d97706'} : {}}>
                 {z.name}
-                {z.is_est && <span className="badge badge-est" style={{marginLeft:4}}>Est</span>}
+                {z.is_est && <span style={{background:'#fef3c7',color:'#d97706',fontSize:9,padding:'1px 5px',borderRadius:3,border:'0.5px solid #fde68a',marginLeft:4}}>Est</span>}
               </td>
               <td className={styles.expandCat}>{z.subcat_name||z.cat_name||''}</td>
               <td className={styles.expandDate}>{z.date ? z.date.slice(5).replace('-',' ') : ''}</td>
-              <td className={`${styles.expandAmt} ${cls}`}>{sign}{rp(z.amount)}</td>
+              <td className={`${styles.expandAmt} ${z.is_est ? '' : cls}`} style={z.is_est ? {color:'#d97706',fontFamily:'monospace',fontSize:10,fontWeight:600,textAlign:'right'} : {}}>{sign}{rp(z.amount)}</td>
               <td className={styles.expandEdit}>
                 {!z.is_rec && (
-                  <span title="Edit" style={{fontSize:12,color:'var(--text3)'}}>✎</span>
+                  <span style={{display:'flex',gap:6,alignItems:'center',justifyContent:'flex-end'}}>
+                    <span title="Edit" style={{fontSize:11,color:'var(--text3)'}}>✎</span>
+                    <span title="Hapus" style={{fontSize:11,color:'var(--text3)',cursor:'pointer'}}
+                      onClick={e=>{e.stopPropagation();if(confirm('Hapus?'))onEdit&&onEdit({...z,_delete:true})}}>🗑</span>
+                  </span>
                 )}
               </td>
             </tr>
@@ -108,7 +104,13 @@ function ExpandItems({ items, type, onEdit }) {
 }
 
 function WeekRow({ r, onToggle, isExpIn, isExpOut, isHist, onEdit }) {
-  const cls = r.isCur ? styles.curWeek : r.status==='defisit' ? styles.rowDanger : r.status==='mepet' ? styles.rowWarn : ''
+  const hasEst = [...r.ins, ...r.outs].some(z => z.is_est)
+  const cls = r.isCur
+    ? styles.curWeek
+    : r.status==='defisit' ? styles.rowDanger
+    : r.status==='mepet'   ? styles.rowWarn
+    : hasEst               ? styles.rowEst
+    : ''
   return (
     <Fragment>
       <tr className={`${isHist ? styles.histRow : styles.weekRow} ${cls}`}>
@@ -118,9 +120,8 @@ function WeekRow({ r, onToggle, isExpIn, isExpOut, isHist, onEdit }) {
             {r.isCur && <span className={styles.curTag}>minggu ini</span>}
           </div>
         </td>
-        <td><span className={isHist ? 'num-dim' : 'num'}>{isHist ? '—' : rp(r.open)}</span></td>
-        <td>{r.ins.length  ? <CellItems items={r.ins}  type="in"  onToggle={() => onToggle(r.week.start,'in')}  isOpen={isExpIn}  /> : <span className="num-dim">—</span>}</td>
-        <td>{r.outs.length ? <CellItems items={r.outs} type="out" onToggle={() => onToggle(r.week.start,'out')} isOpen={isExpOut} /> : <span className="num-dim">—</span>}</td>
+        <td>{r.ins.length  ? <CellItems items={r.ins}  type="in"  onToggle={() => onToggle(r.week.start,'in')}  isOpen={isExpIn}  onEdit={onEdit} /> : <span className="num-dim">—</span>}</td>
+        <td>{r.outs.length ? <CellItems items={r.outs} type="out" onToggle={() => onToggle(r.week.start,'out')} isOpen={isExpOut} onEdit={onEdit} /> : <span className="num-dim">—</span>}</td>
         <td><span className={isHist ? 'num-dim' : r.close < 0 ? 'num-out' : 'num'}>{isHist ? '—' : rp(r.close)}</span></td>
         <td>
           {isHist && <span className="badge badge-hist">Hist</span>}
@@ -131,12 +132,12 @@ function WeekRow({ r, onToggle, isExpIn, isExpOut, isHist, onEdit }) {
       </tr>
       {isExpIn && r.ins.length > 1 && (
         <tr className={styles.expandRow}>
-          <td colSpan={6}><ExpandItems items={r.ins}  type="in"  onEdit={onEdit} /></td>
+          <td colSpan={5}><ExpandItems items={r.ins}  type="in"  onEdit={onEdit} /></td>
         </tr>
       )}
       {isExpOut && r.outs.length > 1 && (
         <tr className={styles.expandRow}>
-          <td colSpan={6}><ExpandItems items={r.outs} type="out" onEdit={onEdit} /></td>
+          <td colSpan={5}><ExpandItems items={r.outs} type="out" onEdit={onEdit} /></td>
         </tr>
       )}
     </Fragment>
@@ -153,6 +154,13 @@ export default function ForecastPage({ page, setPage }) {
   const [collapsedHist, setCollapsedHist] = useState(true)
   const [expandedRows, setExpandedRows] = useState({})
   const [editModal,    setEditModal]    = useState(null) // transaksi yang lagi diedit
+  async function openEdit(tx) {
+    if (tx?._delete) {
+      await handleDelete(tx.id)
+      return
+    }
+    setEditModal(tx)
+  }
 
   function toggleExpand(weekStart, type) {
     const key = `${weekStart}_${type}`
@@ -231,7 +239,7 @@ export default function ForecastPage({ page, setPage }) {
             <table>
               <thead>
                 <tr>
-                  <th>Tanggal</th><th>Saldo Awal</th><th>Masuk</th><th>Keluar</th><th>Saldo Akhir</th><th>Status</th>
+                  <th>Tanggal</th><th>Masuk</th><th>Keluar</th><th>Saldo Akhir</th><th>Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -239,7 +247,7 @@ export default function ForecastPage({ page, setPage }) {
                 {tableData.histRows.length > 0 && (
                   <>
                     <tr className={styles.histBanner}>
-                      <td colSpan={6}>📂 Data Historis Jan–Mar 2026<span className={styles.histNote}> · tidak mempengaruhi saldo forecast</span></td>
+                      <td colSpan={5}>📂 Data Historis Jan–Mar 2026<span className={styles.histNote}> · tidak mempengaruhi saldo forecast</span></td>
                     </tr>
                     {[0,1,2].map(mo => {
                       const moRows = tableData.histRows.filter(r => r.week.month === mo)
@@ -247,7 +255,7 @@ export default function ForecastPage({ page, setPage }) {
                       return (
                         <Fragment key={`hist-mo-${mo}`}>
                           <tr className={styles.monthRow} onClick={() => setCollapsedHist(o => !o)}>
-                            <td colSpan={6}>{MONTHS_SHORT[mo]} 2026 <span className={styles.arrow}>{collapsedHist ? '▶' : '▼'}</span></td>
+                            <td colSpan={5}>{MONTHS_SHORT[mo]} 2026 <span className={styles.arrow}>{collapsedHist ? '▶' : '▼'}</span></td>
                           </tr>
                           {!collapsedHist && moRows.map((r,i) => (
                             <WeekRow
@@ -257,13 +265,13 @@ export default function ForecastPage({ page, setPage }) {
                               isExpIn={isExpanded(`hist_${r.week.start}`,'in')}
                               isExpOut={isExpanded(`hist_${r.week.start}`,'out')}
                               isHist={true}
-                              onEdit={setEditModal}
+                              onEdit={openEdit}
                             />
                           ))}
                         </Fragment>
                       )
                     })}
-                    <tr className={styles.gapRow}><td colSpan={6} /></tr>
+                    <tr className={styles.gapRow}><td colSpan={5} /></tr>
                   </>
                 )}
 
@@ -278,7 +286,7 @@ export default function ForecastPage({ page, setPage }) {
                       <Fragment key={`frag-${i}`}>
                         {isNewMonth && (
                           <tr className={styles.monthRow} onClick={() => toggleMonth(r.week.month)}>
-                            <td colSpan={6}>{MONTHS_SHORT[r.week.month]} 2026 <span className={styles.arrow}>{collapsed ? '▶' : '▼'}</span></td>
+                            <td colSpan={5}>{MONTHS_SHORT[r.week.month]} 2026 <span className={styles.arrow}>{collapsed ? '▶' : '▼'}</span></td>
                           </tr>
                         )}
                         {!collapsed && (
@@ -287,6 +295,7 @@ export default function ForecastPage({ page, setPage }) {
                             onToggle={toggleExpand}
                             isExpIn={isExpanded(r.week.start,'in')}
                             isExpOut={isExpanded(r.week.start,'out')}
+                            onEdit={openEdit}
                           />
                         )}
                       </Fragment>
@@ -304,6 +313,7 @@ export default function ForecastPage({ page, setPage }) {
         tx={editModal}
         categories={categories}
         onUpdate={handleUpdate}
+        onDelete={async (id) => { await handleDelete(id); setEditModal(null) }}
         onClose={() => setEditModal(null)}
       />
     )}
@@ -311,7 +321,7 @@ export default function ForecastPage({ page, setPage }) {
   )
 }
 
-function EditModal({ tx, categories, onUpdate, onClose }) {
+function EditModal({ tx, categories, onUpdate, onDelete, onClose }) {
   const [data, setData] = useState({
     name:      tx.name,
     amount:    tx.amount,
@@ -375,7 +385,17 @@ function EditModal({ tx, categories, onUpdate, onClose }) {
             ))}
           </div>
           <input value={data.name} onChange={e=>setData(p=>({...p,name:e.target.value}))} placeholder="Nama" style={{fontSize:12,padding:'6px 9px'}} />
-          <input type="number" value={data.amount} onChange={e=>setData(p=>({...p,amount:e.target.value}))} placeholder="Jumlah" style={{fontSize:12,padding:'6px 9px'}} />
+          <div style={{position:'relative'}}>
+            <span style={{position:'absolute',left:9,top:'50%',transform:'translateY(-50%)',fontSize:12,color:'var(--text3)',pointerEvents:'none'}}>Rp</span>
+            <input
+              type="number"
+              value={data.amount}
+              onChange={e=>setData(p=>({...p,amount:e.target.value}))}
+              placeholder="0"
+              style={{fontSize:12,padding:'6px 9px 6px 28px',width:'100%'}}
+            />
+          </div>
+          {data.amount > 0 && <div style={{fontSize:10,color:'var(--text3)',marginTop:-4}}>= {Number(data.amount).toLocaleString('id-ID', {style:'currency',currency:'IDR',maximumFractionDigits:0})}</div>}
           <input type="date" value={data.date} onChange={e=>setData(p=>({...p,date:e.target.value}))} style={{fontSize:12,padding:'6px 9px'}} />
           <select value={data.account} onChange={e=>setData(p=>({...p,account:e.target.value}))} style={{fontSize:12,padding:'6px 9px'}}>
             {ACCOUNTS.map(a=><option key={a} value={a}>{ACCT_LABELS[a]}</option>)}
@@ -401,6 +421,10 @@ function EditModal({ tx, categories, onUpdate, onClose }) {
             {saving?'Menyimpan...':'✓ Simpan'}
           </button>
           <button onClick={onClose} style={{padding:'7px 12px',borderRadius:'var(--r)',border:'1px solid var(--border)',background:'none',color:'var(--text2)',fontSize:12,cursor:'pointer',fontFamily:'var(--font)'}}>Batal</button>
+          <button onClick={() => { if(confirm('Hapus transaksi ini?')) { onDelete(tx.id); onClose() } }}
+            style={{padding:'7px 10px',borderRadius:'var(--r)',border:'1px solid var(--red-border)',background:'var(--red-light)',color:'var(--red)',fontSize:12,cursor:'pointer',fontFamily:'var(--font)'}}>
+            🗑
+          </button>
         </div>
       </div>
     </div>
