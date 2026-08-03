@@ -1,294 +1,206 @@
 import { useState, useRef } from 'react'
-import { rp, ACCOUNT_LABELS, MONTHS_SHORT, today } from '../lib/utils'
+import { rp, ACCOUNT_LABELS, today } from '../lib/utils'
 import { uploadFile } from '../lib/db'
-import styles from './AddTransactionForm.module.css'
 
-const ACCOUNTS = ['utama', 'buffer', 'petty', 'procurement']
+const ACCOUNTS = ['utama','buffer','petty','procurement']
 
-export default function AddTransactionForm({ categories, onAdd, allWeeks, transactions = [] }) {
-  const [mode, setMode] = useState('ai') // 'ai' | 'manual'
-  const [mType, setMType] = useState('out')
-
-  // AI state
-  const [aiText, setAiText] = useState('')
-  const [aiImage, setAiImage] = useState(null)
+export default function AddTransactionForm({ categories, onAdd, allWeeks, transactions=[] }) {
+  const [mode,      setMode]      = useState('ai')
+  const [mType,     setMType]     = useState('out')
+  const [aiText,    setAiText]    = useState('')
+  const [aiImage,   setAiImage]   = useState(null)
   const [aiLoading, setAiLoading] = useState(false)
-  const [aiParsed, setAiParsed] = useState(null)
+  const [aiParsed,  setAiParsed]  = useState(null)
   const fileRef = useRef()
-
-  // Manual state
-  const [mName, setMName] = useState('')
-  const [mAmount, setMAmount] = useState('')
-  const [mDate, setMDate] = useState(today())
-  const [mAccount, setMAccount] = useState('utama')
-  const [mCatId, setMCatId] = useState('')
+  const [mName,     setMName]     = useState('')
+  const [mAmount,   setMAmount]   = useState('')
+  const [mDate,     setMDate]     = useState(today())
+  const [mAccount,  setMAccount]  = useState('utama')
+  const [mCatId,    setMCatId]    = useState('')
   const [mSubcatId, setMSubcatId] = useState('')
-  const [mFile, setMFile] = useState(null)
-  const [mEst, setMEst] = useState(false)
-  const [saving, setSaving] = useState(false)
+  const [mEst,      setMEst]      = useState(false)
+  const [saving,    setSaving]    = useState(false)
 
-  const filteredCats = categories.filter(c => c.type === mType)
-  const selectedCat = filteredCats.find(c => c.id === mCatId)
-  const subcats = selectedCat?.subcats || []
+  const filteredCats = categories.filter(c=>c.type===mType)
+  const selectedCat  = filteredCats.find(c=>c.id===mCatId)
+  const subcats      = selectedCat?.subcats||[]
 
-  function buildTxFromManual() {
-    const cat = filteredCats.find(c => c.id === mCatId)
-    const subcat = subcats.find(s => s.id === mSubcatId)
-    return {
-      name: mName,
-      amount: parseFloat(mAmount),
-      date: mDate,
-      type: mType,
-      account: mAccount,
-      cat_id: mCatId || null,
-      cat_name: cat?.name || null,
-      subcat_id: mSubcatId || null,
-      subcat_name: subcat?.name || null,
-      is_est: mEst,
-      is_kemb: false,
-      linked_id: null,
-    }
-  }
-
-  function resetManual() {
-    setMName(''); setMAmount(''); setMDate(today())
-    setMAccount('utama'); setMCatId(''); setMSubcatId('')
-    setMFile(null); setMEst(false)
-  }
+  function resetManual() { setMName('');setMAmount('');setMDate(today());setMAccount('utama');setMCatId('');setMSubcatId('');setMEst(false) }
 
   async function handleManualSubmit() {
     if (!mName.trim()) { alert('Nama harus diisi'); return }
-    if (!mAmount || parseFloat(mAmount) <= 0) { alert('Jumlah harus lebih dari 0'); return }
-    // Validasi duplikat
+    if (!mAmount||parseFloat(mAmount)<=0) { alert('Jumlah harus lebih dari 0'); return }
     const amt = parseFloat(mAmount)
-    const dup = transactions.find(t =>
-      t.name.toLowerCase() === mName.trim().toLowerCase() &&
-      t.date === mDate &&
-      Number(t.amount) === amt &&
-      t.type === mType
-    )
-    if (dup) {
-      if (!confirm(`Transaksi serupa sudah ada:\n"${dup.name}" — ${dup.date} — Rp ${amt.toLocaleString('id')}\n\nTetap tambahkan?`)) return
-    }
+    const dup = transactions.find(t=>t.name.toLowerCase()===mName.trim().toLowerCase()&&t.date===mDate&&Number(t.amount)===amt&&t.type===mType)
+    if (dup && !confirm(`Transaksi serupa sudah ada:\n"${dup.name}" — ${dup.date}\n\nTetap tambahkan?`)) return
     setSaving(true)
     try {
-      const tx = buildTxFromManual()
-      if (mFile) {
-        const f = await uploadFile(mFile)
-        tx.file_name = f.name; tx.file_url = f.url
-      }
-      await onAdd(tx)
+      const cat = filteredCats.find(c=>c.id===mCatId)
+      const sub = subcats.find(s=>s.id===mSubcatId)
+      await onAdd({ name:mName.trim(), amount:amt, date:mDate, type:mType, account:mAccount, cat_id:mCatId||null, cat_name:cat?.name||null, subcat_id:mSubcatId||null, subcat_name:sub?.name||null, is_est:mEst, is_kemb:false })
       resetManual()
-    } catch (e) { alert('Gagal simpan: ' + e.message) }
-    finally { setSaving(false) }
+    } catch(e){alert('Gagal: '+e.message)} finally{setSaving(false)}
   }
 
-  // AI Parse
   async function handleParse() {
-    if (!aiText.trim() && !aiImage) return
-    setAiLoading(true)
-    setAiParsed(null)
+    if (!aiText.trim()&&!aiImage) return
+    setAiLoading(true); setAiParsed(null)
     try {
-      const catCtx = categories.map(c =>
-        `[${c.type}] ${c.name} (id: ${c.id}) → subcats: ${(c.subcats||[]).map(s=>`${s.name}(${s.id})`).join(', ')}`
-      ).join('\n')
-      const todayStr = today()
-
+      const catCtx = categories.map(c=>`[${c.type}] ${c.name} (id:${c.id}) → ${(c.subcats||[]).map(s=>`${s.name}(${s.id})`).join(',')}`).join('\n')
       const userContent = []
-      if (aiImage) {
-        userContent.push({ type: 'image', source: { type: 'base64', media_type: aiImage.mediaType, data: aiImage.base64 } })
-      }
-      userContent.push({ type: 'text', text: aiText || 'Parse transaksi dari gambar.' })
-
+      if (aiImage) userContent.push({ type:'image', source:{ type:'base64', media_type:aiImage.mediaType, data:aiImage.base64 }})
+      userContent.push({ type:'text', text:aiText||'Parse transaksi dari gambar.' })
       const resp = await fetch('/api/claude', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 500,
-          system: `Kamu asisten keuangan Gastron (distribusi gas CNG). Parse input transaksi dan kembalikan JSON.
-
-KATEGORI:\n${catCtx}
-
-REKENING: utama, buffer, petty, procurement
-HARI INI: ${todayStr}
-
-RULES:
-- date format: YYYY-MM-DD. Kalau tidak ada tanggal, pakai hari ini.
-- type: "in" pemasukan, "out" pengeluaran
-- isEst: true kalau jumlah perkiraan
-- amount: angka murni (tanpa titik/koma)
-
-Kembalikan HANYA JSON valid:
-{"name":"...","amount":0,"date":"2026-06-01","type":"out","account":"utama","catId":"","catName":"","subcatId":"","subcatName":"","isEst":false}`,
-          messages: [{ role: 'user', content: userContent }]
+          model:'claude-sonnet-4-6', max_tokens:500,
+          system:`Kamu asisten keuangan Gastron. Parse input dan kembalikan JSON.\nKATEGORI:\n${catCtx}\nREKENING: utama,buffer,petty,procurement\nHARI INI: ${today()}\nKembalikan HANYA JSON: {"name":"...","amount":0,"date":"2026-06-01","type":"out","account":"utama","catId":"","catName":"","subcatId":"","subcatName":"","isEst":false}`,
+          messages:[{ role:'user', content:userContent }]
         })
       })
       const data = await resp.json()
-      const raw = data.content?.[0]?.text || ''
-      const clean = raw.replace(/```json|```/g, '').trim()
-      setAiParsed(JSON.parse(clean))
-    } catch (e) {
-      alert('Gagal parse: ' + e.message)
-    } finally {
-      setAiLoading(false)
-    }
+      const raw = data.content?.[0]?.text||''
+      setAiParsed(JSON.parse(raw.replace(/```json|```/g,'').trim()))
+    } catch(e){alert('Gagal parse: '+e.message)} finally{setAiLoading(false)}
   }
 
   async function confirmAI() {
     if (!aiParsed) return
     setSaving(true)
     try {
-      await onAdd({
-        name: aiParsed.name,
-        amount: parseFloat(aiParsed.amount),
-        date: aiParsed.date || today(),
-        type: aiParsed.type || 'out',
-        account: aiParsed.account || 'utama',
-        cat_id: aiParsed.catId || null,
-        cat_name: aiParsed.catName || null,
-        subcat_id: aiParsed.subcatId || null,
-        subcat_name: aiParsed.subcatName || null,
-        is_est: !!aiParsed.isEst,
-        is_kemb: false,
-      })
+      await onAdd({ name:aiParsed.name, amount:parseFloat(aiParsed.amount), date:aiParsed.date||today(), type:aiParsed.type||'out', account:aiParsed.account||'utama', cat_id:aiParsed.catId||null, cat_name:aiParsed.catName||null, subcat_id:aiParsed.subcatId||null, subcat_name:aiParsed.subcatName||null, is_est:!!aiParsed.isEst, is_kemb:false })
       setAiText(''); setAiImage(null); setAiParsed(null)
-    } catch (e) { alert('Gagal simpan: ' + e.message) }
-    finally { setSaving(false) }
+    } catch(e){alert('Gagal: '+e.message)} finally{setSaving(false)}
   }
 
   function onImgSelect(e) {
-    const f = e.target.files[0]
-    if (!f) return
-    const reader = new FileReader()
-    reader.onload = ev => {
-      setAiImage({ base64: ev.target.result.split(',')[1], mediaType: f.type, name: f.name })
-    }
-    reader.readAsDataURL(f)
+    const f = e.target.files[0]; if (!f) return
+    const r = new FileReader()
+    r.onload = ev => setAiImage({ base64:ev.target.result.split(',')[1], mediaType:f.type, name:f.name })
+    r.readAsDataURL(f)
   }
 
   return (
-    <div className={styles.wrap}>
-      <div className={styles.header}>
-        <span className={styles.title}>+ Tambah Transaksi</span>
-        <div className={styles.modeTabs}>
-          <button className={`${styles.modeBtn} ${mode==='ai'?styles.modeOn:''}`} onClick={()=>setMode('ai')}>✦ AI</button>
-          <button className={`${styles.modeBtn} ${mode==='manual'?styles.modeOn:''}`} onClick={()=>setMode('manual')}>✏ Manual</button>
+    <div style={{display:'flex',flexDirection:'column',flex:1,overflow:'hidden'}}>
+      {/* MODE TABS */}
+      <div style={{padding:'10px 13px 0',flexShrink:0}}>
+        <div style={{display:'flex',gap:3}}>
+          {[['ai','✦ AI'],['manual','✏ Manual']].map(([m,label])=>(
+            <button key={m} onClick={()=>setMode(m)} style={{flex:1,padding:'6px 8px',borderRadius:'var(--r)',border:`0.5px solid ${mode===m?'var(--red-bd)':'var(--glass-bd)'}`,background:mode===m?'var(--red-bg)':'none',fontSize:10,fontWeight:500,color:mode===m?'var(--red)':'var(--text2)',cursor:'pointer',fontFamily:'var(--font)',transition:'all .18s'}}>
+              {label}
+            </button>
+          ))}
         </div>
       </div>
 
-      <div className={styles.body}>
+      <div style={{flex:1,overflow:'auto',padding:'10px 13px 13px',display:'flex',flexDirection:'column',gap:8}}>
         {mode === 'ai' ? (
-          <div className={styles.aiMode}>
+          <>
+            <div style={{display:'flex',alignItems:'center',gap:5,fontSize:10,color:'var(--text2)'}}>
+              <span style={{width:5,height:5,borderRadius:'50%',background:'var(--red)',boxShadow:'0 0 5px rgba(201,64,64,.45)',animation:'pulse 2s infinite',display:'inline-block'}}/>
+              Parse dengan AI
+            </div>
             <textarea
-              className={styles.aiInput}
               rows={3}
-              placeholder={"cth: bayar gaji driver 5jt minggu ini\natau: top up gas 50 juta dari procurement"}
               value={aiText}
-              onChange={e => setAiText(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleParse() } }}
+              onChange={e=>setAiText(e.target.value)}
+              onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();handleParse()}}}
+              placeholder={'cth: bayar gaji driver 5jt minggu ini\natau: top up gas 50 juta dari procurement'}
+              style={{width:'100%',background:'var(--input-bg)',border:'0.5px solid var(--glass-bd)',borderRadius:'var(--r)',padding:'9px 10px',fontSize:11,color:'var(--text)',fontFamily:'var(--font)',resize:'none',outline:'none',minHeight:52,lineHeight:1.5}}
             />
-            <span className={styles.hint}>Enter untuk parse · Shift+Enter baris baru</span>
+            <span style={{fontSize:9,color:'var(--text3)',marginTop:-4}}>Enter untuk parse · Shift+Enter baris baru</span>
 
             {aiImage ? (
-              <div className={styles.imgSel}>
-                <span>📸 {aiImage.name}</span>
-                <button onClick={() => setAiImage(null)}>×</button>
+              <div style={{display:'flex',alignItems:'center',gap:7,padding:'7px 10px',background:'var(--glass)',border:'0.5px solid var(--glass-bd)',borderRadius:'var(--r)',fontSize:11,color:'var(--text2)'}}>
+                <span style={{flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>📸 {aiImage.name}</span>
+                <button onClick={()=>setAiImage(null)} style={{background:'none',border:'none',color:'var(--text3)',cursor:'pointer',fontSize:14,lineHeight:1}}>×</button>
               </div>
             ) : (
-              <button className={styles.imgBtn} onClick={() => fileRef.current.click()}>📷 Upload foto struk</button>
+              <button onClick={()=>fileRef.current.click()} style={{background:'var(--glass)',border:'0.5px dashed var(--glass-bd)',borderRadius:'var(--r)',padding:'8px',fontSize:11,color:'var(--text3)',cursor:'pointer',fontFamily:'var(--font)',transition:'all .18s',textAlign:'center'}}>
+                📷 Upload foto struk
+              </button>
             )}
-            <input type="file" ref={fileRef} style={{display:'none'}} accept="image/*" onChange={onImgSelect} />
+            <input type="file" ref={fileRef} style={{display:'none'}} accept="image/*" onChange={onImgSelect}/>
 
-            <button
-              className={styles.parseBtn}
-              onClick={handleParse}
-              disabled={aiLoading || (!aiText.trim() && !aiImage)}
-            >
-              {aiLoading ? '⏳ Parsing...' : '✦ Parse dengan AI'}
+            <button onClick={handleParse} disabled={aiLoading||(!aiText.trim()&&!aiImage)}
+              style={{background:'var(--red)',border:'none',borderRadius:'var(--r)',padding:10,fontSize:11,fontWeight:600,color:'#fff',cursor:'pointer',fontFamily:'var(--font)',boxShadow:'0 2px 8px rgba(201,64,64,.28)',opacity:(aiLoading||(!aiText.trim()&&!aiImage))?.6:1,transition:'background .18s'}}>
+              {aiLoading?'⏳ Parsing...':'✦ Parse dengan AI'}
             </button>
 
             {aiParsed && (
-              <div className={styles.preview}>
-                <div className={styles.previewHdr}>
-                  <span>Hasil Parse AI</span>
-                  <button onClick={() => setAiParsed(null)}>×</button>
+              <div style={{background:'var(--glass)',border:'0.5px solid var(--glass-bd)',borderRadius:'var(--r)',overflow:'hidden'}}>
+                <div style={{padding:'9px 11px',borderBottom:'0.5px solid var(--divider)',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                  <span style={{fontSize:10,fontWeight:700,color:'var(--navy)',fontFamily:'var(--sora)',textTransform:'uppercase',letterSpacing:'.06em'}}>Hasil Parse AI</span>
+                  <button onClick={()=>setAiParsed(null)} style={{background:'none',border:'none',color:'var(--text3)',cursor:'pointer',fontSize:14,lineHeight:1}}>×</button>
                 </div>
-                <div className={styles.previewBody}>
-                  <Row label="Tipe" val={<span className={aiParsed.type==='in'?styles.valIn:styles.valOut}>{aiParsed.type==='in'?'● Masuk':'● Keluar'}</span>} />
-                  <Row label="Nama" val={aiParsed.name} />
-                  <Row label="Jumlah" val={<b>{rp(aiParsed.amount)}</b>} />
-                  <Row label="Tanggal" val={aiParsed.date} />
-                  <Row label="Rekening" val={ACCOUNT_LABELS[aiParsed.account]||aiParsed.account} />
-                  {aiParsed.catName && <Row label="Kategori" val={`${aiParsed.catName}${aiParsed.subcatName?' › '+aiParsed.subcatName:''}`} />}
-                  {aiParsed.isEst && <Row label="Status" val={<span className={styles.valEst}>⚠ Estimasi</span>} />}
+                <div style={{padding:'9px 11px',display:'flex',flexDirection:'column',gap:5}}>
+                  {[
+                    ['Tipe', <span style={{color:aiParsed.type==='in'?'var(--green)':'var(--red)',fontWeight:600}}>{aiParsed.type==='in'?'↑ Masuk':'↓ Keluar'}</span>],
+                    ['Nama', aiParsed.name],
+                    ['Jumlah', <span style={{fontFamily:'var(--mono)',fontWeight:500}}>{rp(aiParsed.amount)}</span>],
+                    ['Tanggal', aiParsed.date],
+                    ['Rekening', ACCOUNT_LABELS[aiParsed.account]||aiParsed.account],
+                    aiParsed.catName && ['Kategori', `${aiParsed.catName}${aiParsed.subcatName?' › '+aiParsed.subcatName:''}`],
+                    aiParsed.isEst && ['Status', <span style={{color:'var(--amber)',fontWeight:600}}>⚠ Estimasi</span>],
+                  ].filter(Boolean).map(([label,val],i)=>(
+                    <div key={i} style={{display:'flex',alignItems:'baseline',gap:8}}>
+                      <span style={{fontSize:9,color:'var(--text3)',minWidth:56,flexShrink:0,textTransform:'uppercase',letterSpacing:'.05em',fontWeight:600,fontFamily:'var(--sora)'}}>{label}</span>
+                      <span style={{fontSize:11,color:'var(--text)'}}>{val}</span>
+                    </div>
+                  ))}
                 </div>
-                <div className={styles.previewFoot}>
-                  <button className={styles.confBtn} onClick={confirmAI} disabled={saving}>✓ Simpan</button>
-                  <button className={styles.cancBtn} onClick={() => setAiParsed(null)}>Batal</button>
+                <div style={{padding:'8px 11px',borderTop:'0.5px solid var(--divider)',display:'flex',gap:6}}>
+                  <button onClick={confirmAI} disabled={saving} style={{flex:1,padding:'7px',background:'var(--red)',border:'none',borderRadius:7,fontSize:11,fontWeight:600,color:'#fff',cursor:'pointer',fontFamily:'var(--font)'}}>
+                    {saving?'Menyimpan...':'✓ Simpan'}
+                  </button>
+                  <button onClick={()=>setAiParsed(null)} style={{padding:'7px 11px',background:'var(--glass)',border:'0.5px solid var(--glass-bd)',borderRadius:7,fontSize:11,color:'var(--text2)',cursor:'pointer',fontFamily:'var(--font)'}}>
+                    Batal
+                  </button>
                 </div>
               </div>
             )}
-          </div>
+          </>
         ) : (
-          <div className={styles.manualMode}>
-            <div className={styles.typeRow}>
-              <button className={`${styles.typeBtn} ${mType==='in'?styles.typeBtnIn:''}`} onClick={()=>{setMType('in');setMCatId('');setMSubcatId('')}}>Masuk</button>
-              <button className={`${styles.typeBtn} ${mType==='out'?styles.typeBtnOut:''}`} onClick={()=>{setMType('out');setMCatId('');setMSubcatId('')}}>Keluar</button>
+          <>
+            <div style={{display:'flex',gap:4}}>
+              {['in','out'].map(t=>(
+                <button key={t} onClick={()=>{setMType(t);setMCatId('');setMSubcatId('')}}
+                  style={{flex:1,padding:'7px',borderRadius:'var(--r)',border:`0.5px solid ${mType===t?(t==='in'?'var(--green-bd)':'var(--red-bd)'):'var(--glass-bd)'}`,background:mType===t?(t==='in'?'var(--green-bg)':'var(--red-bg)'):'none',fontSize:11,fontWeight:600,color:mType===t?(t==='in'?'var(--green)':'var(--red)'):'var(--text3)',cursor:'pointer',fontFamily:'var(--font)',transition:'all .15s'}}>
+                  {t==='in'?'Masuk':'Keluar'}
+                </button>
+              ))}
             </div>
-            <div className="fg">
-              <label>Nama / Keterangan</label>
-              <input value={mName} onChange={e=>setMName(e.target.value)} placeholder="cth: Gaji Tim" />
+            <input value={mName} onChange={e=>setMName(e.target.value)} placeholder="Nama / keterangan" className="form-input" style={{marginBottom:0}}/>
+            <div style={{position:'relative'}}>
+              <span style={{position:'absolute',left:10,top:'50%',transform:'translateY(-50%)',fontSize:11,color:'var(--text3)',pointerEvents:'none'}}>Rp</span>
+              <input type="number" value={mAmount} onChange={e=>setMAmount(e.target.value)} placeholder="0" className="form-input" style={{paddingLeft:28,marginBottom:0}}/>
             </div>
-            <div className="fg">
-              <label>Jumlah (Rp)</label>
-              <input type="number" value={mAmount} onChange={e=>setMAmount(e.target.value)} placeholder="0" />
-            </div>
-            <div className="fg">
-              <label>Tanggal</label>
-              <input type="date" value={mDate} onChange={e=>setMDate(e.target.value)} />
-            </div>
-            <div className="fg">
-              <label>Rekening</label>
-              <select value={mAccount} onChange={e=>setMAccount(e.target.value)}>
-                {ACCOUNTS.map(a => <option key={a} value={a}>{ACCOUNT_LABELS[a]}</option>)}
+            {mAmount>0 && <div style={{fontSize:10,color:'var(--text3)',marginTop:-4}}>{Number(mAmount).toLocaleString('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0})}</div>}
+            <input type="date" value={mDate} onChange={e=>setMDate(e.target.value)} className="form-input" style={{marginBottom:0}}/>
+            <select value={mAccount} onChange={e=>setMAccount(e.target.value)} className="form-select" style={{marginBottom:0}}>
+              {ACCOUNTS.map(a=><option key={a} value={a}>{ACCOUNT_LABELS[a]}</option>)}
+            </select>
+            <select value={mCatId} onChange={e=>{setMCatId(e.target.value);setMSubcatId('')}} className="form-select" style={{marginBottom:0}}>
+              <option value="">— Kategori —</option>
+              {filteredCats.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+            {subcats.length>0 && (
+              <select value={mSubcatId} onChange={e=>setMSubcatId(e.target.value)} className="form-select" style={{marginBottom:0}}>
+                <option value="">— Subkategori —</option>
+                {subcats.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
-            </div>
-            <div className="fg">
-              <label>Kategori</label>
-              <select value={mCatId} onChange={e=>{setMCatId(e.target.value);setMSubcatId('')}}>
-                <option value="">— Pilih kategori —</option>
-                {filteredCats.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            </div>
-            {subcats.length > 0 && (
-              <div className="fg">
-                <label>Subkategori</label>
-                <select value={mSubcatId} onChange={e=>setMSubcatId(e.target.value)}>
-                  <option value="">—</option>
-                  {subcats.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
-              </div>
             )}
-            <label className={styles.estRow}>
-              <input type="checkbox" checked={mEst} onChange={e=>setMEst(e.target.checked)} />
-              <span>Tandai sebagai Estimasi</span>
+            <label style={{display:'flex',alignItems:'center',gap:7,fontSize:11,color:'var(--text2)',cursor:'pointer'}}>
+              <input type="checkbox" checked={mEst} onChange={e=>setMEst(e.target.checked)} style={{accentColor:'var(--red)',width:'auto'}}/>
+              Tandai sebagai estimasi
             </label>
-            <button className={styles.addBtn} onClick={handleManualSubmit} disabled={saving}>
-              {saving ? 'Menyimpan...' : '+ Tambah'}
+            <button onClick={handleManualSubmit} disabled={saving}
+              style={{width:'100%',background:'var(--red)',border:'none',borderRadius:'var(--r)',padding:9,fontSize:11,fontWeight:600,color:'#fff',cursor:'pointer',fontFamily:'var(--font)',boxShadow:'0 2px 8px rgba(201,64,64,.28)',opacity:saving?.6:1,transition:'background .18s'}}>
+              {saving?'Menyimpan...':'+ Tambah'}
             </button>
-          </div>
+          </>
         )}
       </div>
-    </div>
-  )
-}
-
-function Row({ label, val }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-      <span style={{ fontSize: 10, color: 'var(--text2)', minWidth: 64, flexShrink: 0, textTransform: 'uppercase', letterSpacing: '.04em', fontWeight: 600 }}>{label}</span>
-      <span style={{ fontSize: 12 }}>{val}</span>
     </div>
   )
 }
