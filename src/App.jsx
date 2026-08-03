@@ -1,3 +1,5 @@
+document.documentElement.setAttribute('data-theme', localStorage.getItem('gastron-theme') || 'light')
+
 import { useState, useEffect } from 'react'
 import { AppProvider, useApp } from './context/AppContext'
 import ForecastPage   from './pages/ForecastPage'

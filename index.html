@@ -1,13 +1,1579 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>gastron-cashflow</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<!DOCTYPE html>
+<html lang="id" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gastron · Cashflow 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600&family=Sora:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+/* ─── CSS VARIABLES ─────────────────────────────────────────── */
+:root,[data-theme="light"]{
+  --red:#C94040;--red-d:#A32A2A;--red-bg:rgba(201,64,64,.08);--red-bd:rgba(201,64,64,.22);
+  --green:#1E8A55;--green-bg:rgba(30,138,85,.08);--green-bd:rgba(30,138,85,.20);
+  --amber:#A07010;--amber-bg:rgba(160,112,16,.08);--amber-bd:rgba(160,112,16,.20);
+  --blue:#2B5EA7;--blue-bg:rgba(43,94,167,.08);--blue-bd:rgba(43,94,167,.20);
+  --text:#1A1510;--text2:#6A6158;--text3:#A09080;--navy:#120808;
+  --divider:rgba(0,0,0,.05);
+  --glass:rgba(255,255,255,.58);--glass-hov:rgba(255,255,255,.82);--glass-bd:rgba(201,64,64,.11);
+  --sb-bg:rgba(245,240,230,.84);--modal-bg:rgba(252,249,244,.98);
+  --input-bg:rgba(255,255,255,.65);--scrollbar:#E0D9CC;
+  --bg1:#F0D0C0;--bg2:#C8DFC8;--bg3:#C0CFF0;
+  --shadow:0 2px 20px rgba(201,64,64,.07),0 1px 4px rgba(0,0,0,.04);
+  --r:9px;--r2:14px;
+  --font:'Plus Jakarta Sans',sans-serif;--mono:'IBM Plex Mono',monospace;--sora:'Sora',sans-serif;
+}
+[data-theme="dark"]{
+  --red:#E07070;--red-d:#C94040;--red-bg:rgba(224,112,112,.12);--red-bd:rgba(224,112,112,.28);
+  --green:#5DBF8A;--green-bg:rgba(93,191,138,.12);--green-bd:rgba(93,191,138,.24);
+  --amber:#E0A830;--amber-bg:rgba(224,168,48,.12);--amber-bd:rgba(224,168,48,.24);
+  --blue:#6B9DD6;--blue-bg:rgba(107,157,214,.12);--blue-bd:rgba(107,157,214,.24);
+  --text:#F5F0EB;--text2:rgba(245,240,235,.55);--text3:rgba(245,240,235,.32);--navy:#F5F0EB;
+  --divider:rgba(245,240,235,.07);
+  --glass:rgba(255,245,240,.05);--glass-hov:rgba(255,245,240,.09);--glass-bd:rgba(255,245,240,.10);
+  --sb-bg:rgba(15,10,10,.82);--modal-bg:#1A0F0F;--input-bg:rgba(245,240,235,.06);--scrollbar:rgba(245,240,235,.15);
+  --bg1:#3D1515;--bg2:#1A2E1A;--bg3:#1A1530;
+  --shadow:none;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:var(--font);background:var(--bg-base,#F5F0E6);color:var(--text);overflow:hidden;transition:background .4s,color .3s}
+[data-theme="light"]{--bg-base:#F5F0E6}
+[data-theme="dark"]{--bg-base:#0F0A0A}
+
+/* ─── BG BLOBS ──────────────────────────────────────────────── */
+#bg{position:fixed;inset:0;z-index:0;pointer-events:none}
+[data-theme="light"] #bg{background:linear-gradient(140deg,#F5F0E6 0%,#FAF0F0 55%,#EEF0FA 100%)}
+[data-theme="dark"] #bg{background:#0F0A0A}
+.blob{position:absolute;border-radius:50%;filter:blur(80px);animation:fl 16s ease-in-out infinite}
+.blob:nth-child(1){width:420px;height:420px;background:var(--bg1);top:-100px;left:-80px;opacity:.32}
+.blob:nth-child(2){width:300px;height:300px;background:var(--bg2);top:55%;right:-60px;opacity:.22;animation-delay:6s}
+.blob:nth-child(3){width:240px;height:240px;background:var(--bg3);bottom:-40px;left:38%;opacity:.24;animation-delay:11s}
+@keyframes fl{0%,100%{transform:translate(0,0)}40%{transform:translate(18px,-22px)}75%{transform:translate(-12px,14px)}}
+
+/* ─── APP SHELL ─────────────────────────────────────────────── */
+#app{position:relative;z-index:1;display:flex;height:100vh;overflow:hidden}
+
+/* NAV */
+#nav{width:48px;flex-shrink:0;background:var(--sb-bg);backdrop-filter:blur(24px);border-right:.5px solid var(--glass-bd);display:flex;flex-direction:column;align-items:center;padding:14px 0;gap:2px;z-index:10;transition:background .4s}
+.nav-logo{width:30px;height:30px;border-radius:9px;background:var(--red);display:flex;align-items:center;justify-content:center;font-family:var(--sora);font-size:13px;font-weight:700;color:#fff;margin-bottom:14px;box-shadow:0 3px 10px rgba(201,64,64,.38);flex-shrink:0}
+.nav-btn{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--text3);cursor:pointer;border:.5px solid transparent;position:relative;transition:all .18s;background:none}
+.nav-btn:hover{background:var(--glass-hov);color:var(--text2)}
+.nav-btn.on{background:var(--red-bg);color:var(--red);border-color:var(--red-bd)}
+.nav-btn.on::after{content:'';position:absolute;right:-1px;top:50%;transform:translateY(-50%);width:2px;height:16px;background:var(--red);border-radius:2px 0 0 2px}
+.nav-sep{width:20px;height:.5px;background:var(--glass-bd);margin:5px 0;flex-shrink:0}
+.nav-bot{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:5px}
+#theme-btn{width:28px;height:28px;border-radius:7px;background:var(--glass);border:.5px solid var(--glass-bd);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;color:var(--text2)}
+
+/* SIDEBAR */
+#sidebar{width:218px;flex-shrink:0;background:var(--sb-bg);backdrop-filter:blur(22px);border-right:.5px solid var(--glass-bd);display:flex;flex-direction:column;overflow:hidden;transition:width .25s,opacity .25s}
+#sidebar.closed{width:0;opacity:0;pointer-events:none}
+.sb-hdr{padding:13px 13px 10px;border-bottom:.5px solid var(--glass-bd);flex-shrink:0}
+.sb-title{font-family:var(--sora);font-size:10px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px}
+.sb-tabs{display:flex;gap:3px}
+.sb-tab{flex:1;padding:6px 8px;border-radius:7px;border:.5px solid transparent;background:none;font-size:10px;font-weight:500;color:var(--text2);cursor:pointer;font-family:var(--font);transition:all .18s}
+.sb-tab.on{background:var(--red-bg);border-color:var(--red-bd);color:var(--red)}
+.sb-body{flex:1;overflow:auto;padding:11px 13px;display:flex;flex-direction:column;gap:8px}
+
+/* MAIN */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.main-hdr{display:flex;align-items:center;gap:9px;padding:0 16px;height:48px;background:var(--sb-bg);backdrop-filter:blur(18px);border-bottom:.5px solid var(--glass-bd);flex-shrink:0}
+.sb-toggle{width:26px;height:26px;border-radius:7px;background:var(--glass);border:.5px solid var(--glass-bd);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--text2);cursor:pointer}
+.page-title{font-family:var(--sora);font-size:15px;font-weight:700;color:var(--navy);letter-spacing:-.02em}
+
+/* PAGES */
+.page{display:none;flex:1;flex-direction:column;overflow:hidden}
+.page.active{display:flex}
+.page-body{flex:1;overflow:auto;padding:14px 16px}
+
+/* ─── FORM ELEMENTS ─────────────────────────────────────────── */
+.inp,.sel{width:100%;background:var(--input-bg);border:.5px solid var(--glass-bd);border-radius:var(--r);padding:8px 10px;font-size:11px;color:var(--text);font-family:var(--font);outline:none;transition:border-color .18s;-webkit-appearance:none}
+.inp:focus,.sel:focus{border-color:var(--red-bd)}
+.inp::placeholder{color:var(--text3)}
+.btn-red{background:var(--red);border:none;border-radius:var(--r);padding:9px;font-size:11px;font-weight:600;color:#fff;cursor:pointer;font-family:var(--font);box-shadow:0 2px 8px rgba(201,64,64,.28);transition:background .18s;width:100%}
+.btn-red:hover{background:var(--red-d)}
+.type-row{display:flex;gap:4px}
+.type-btn{flex:1;padding:7px;border-radius:var(--r);border:.5px solid var(--glass-bd);background:none;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font);transition:all .15s;color:var(--text3)}
+.type-btn.in{background:var(--green-bg);border-color:var(--green-bd);color:var(--green)}
+.type-btn.out{background:var(--red-bg);border-color:var(--red-bd);color:var(--red)}
+.ai-dot{width:5px;height:5px;border-radius:50%;background:var(--red);display:inline-block;margin-right:5px;animation:pulse 2s infinite;box-shadow:0 0 5px rgba(201,64,64,.45)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+/* ─── REMINDER BAR ──────────────────────────────────────────── */
+#reminder-bar{display:none;align-items:center;gap:10px;padding:9px 16px;background:var(--amber-bg);border-bottom:.5px solid var(--amber-bd);font-size:11px;color:var(--amber);flex-shrink:0;cursor:pointer}
+#reminder-bar.show{display:flex}
+#reminder-bar b{font-weight:600}
+.rem-btn{font-size:10px;font-weight:600;color:var(--amber);background:rgba(160,112,16,.12);border:.5px solid var(--amber-bd);border-radius:6px;padding:3px 10px;cursor:pointer;font-family:var(--font);margin-left:auto;white-space:nowrap}
+
+/* ─── FORECAST TABLE ────────────────────────────────────────── */
+#forecast-wrap{flex:1;overflow:auto;padding:12px 14px;display:flex;flex-direction:column;gap:2px}
+.t-head{display:grid;grid-template-columns:100px 1fr 1fr 120px 72px;padding:3px 14px;margin-bottom:2px}
+.th{font-family:var(--sora);font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;text-align:right}
+.th:first-child{text-align:left}
+.mo-hdr{display:flex;align-items:center;gap:8px;padding:7px 14px 3px;cursor:pointer;margin-top:5px}
+.mo-hdr:hover{opacity:.75}
+.mo-label{font-family:var(--sora);font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em}
+.mo-line{flex:1;height:.5px;background:var(--glass-bd)}
+.mo-arr{font-size:9px;color:var(--text3)}
+.week-wrap{display:flex;flex-direction:column;margin-bottom:2px}
+.week-row{display:grid;grid-template-columns:100px 1fr 1fr 120px 72px;align-items:center;padding:10px 14px;background:var(--glass);border:.5px solid var(--glass-bd);border-radius:var(--r2);backdrop-filter:blur(14px);transition:all .18s}
+.week-row:hover{background:var(--glass-hov);transform:translateY(-1px);box-shadow:var(--shadow)}
+.week-row.cur{background:rgba(201,64,64,.05);border-color:var(--red-bd)}
+.week-row.west{background:var(--amber-bg);border-color:var(--amber-bd)}
+.week-row.defisit{background:var(--red-bg);border-color:var(--red-bd)}
+.week-row.hist{opacity:.65}
+.date-cell{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.date-num{font-family:var(--mono);font-size:12px;color:var(--text)}
+.tag{font-size:8px;font-weight:600;padding:1px 5px;border-radius:100px}
+.tag-cur{background:var(--red-bg);color:var(--red);border:.5px solid var(--red-bd)}
+.tag-est{background:var(--amber-bg);color:var(--amber);border:.5px solid var(--amber-bd)}
+.tag-hist{background:var(--glass);color:var(--text3);border:.5px solid var(--glass-bd)}
+.cell-btn{background:none;border:none;padding:0;cursor:pointer;text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:1px;width:100%;font-family:var(--font)}
+.cell-total{font-family:var(--mono);font-size:12px;font-weight:500}
+.cell-count{font-size:9px;color:var(--text3)}
+.n-in{color:var(--green)}.n-out{color:var(--red)}.n-dim{color:var(--text3);font-family:var(--mono);font-size:12px}
+.num{font-family:var(--mono);font-size:12px;color:var(--text);text-align:right;display:block}
+.s-cell{display:flex;justify-content:flex-end}
+.chip{display:inline-flex;align-items:center;padding:2px 9px;border-radius:100px;font-size:9px;font-weight:600;white-space:nowrap}
+.chip-ok{background:var(--green-bg);color:var(--green);border:.5px solid var(--green-bd)}
+.chip-warn{background:var(--amber-bg);color:var(--amber);border:.5px solid var(--amber-bd)}
+.chip-danger{background:var(--red-bg);color:var(--red);border:.5px solid var(--red-bd)}
+.hist-banner{display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--red-bg);border:.5px solid var(--red-bd);border-radius:var(--r);cursor:pointer;font-size:11px;font-weight:500;color:var(--text2);margin-bottom:4px}
+
+/* EXPAND PANEL */
+.expand-panel{background:rgba(255,255,255,.38);border:.5px solid var(--glass-bd);border-top:none;border-radius:0 0 var(--r2) var(--r2);border-left:2px solid var(--red);overflow:hidden;margin-bottom:2px}
+.exp-item{display:grid;grid-template-columns:1fr 110px 58px 22px;gap:6px;align-items:center;padding:5px 12px;border-bottom:.5px solid var(--divider);cursor:pointer;transition:background .15s}
+.exp-item:hover{background:rgba(255,255,255,.6)}
+.exp-name{font-size:11px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.exp-name.est{color:var(--amber)}
+.exp-cat{font-size:10px;color:var(--text3);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.exp-amt{font-family:var(--mono);font-size:11px;font-weight:500;text-align:right}
+.exp-edit{font-size:10px;color:var(--text3);text-align:center;opacity:0;transition:opacity .15s}
+.exp-item:hover .exp-edit{opacity:1}
+.exp-footer{display:flex;justify-content:space-between;align-items:center;padding:5px 12px 7px;border-top:.5px solid var(--divider)}
+.show-more{font-size:10px;color:var(--blue);background:none;border:none;cursor:pointer;font-family:var(--font);text-decoration:underline;text-underline-offset:2px}
+.total-pill{display:flex;align-items:center;gap:6px;padding:3px 10px;border-radius:100px}
+.pill-out{background:var(--red-bg);border:.5px solid var(--red-bd)}
+.pill-in{background:var(--green-bg);border:.5px solid var(--green-bd)}
+.pill-lbl{font-family:var(--sora);font-size:8px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em}
+.pill-val{font-family:var(--mono);font-size:11px;font-weight:500}
+.badge{display:inline-flex;align-items:center;padding:1px 5px;border-radius:100px;font-size:9px;font-weight:600;margin-left:3px}
+.b-est{background:var(--amber-bg);color:var(--amber);border:.5px solid var(--amber-bd)}
+.b-rec{background:var(--blue-bg);color:var(--blue);border:.5px solid var(--blue-bd)}
+
+/* ─── MODALS ────────────────────────────────────────────────── */
+.modal-overlay{position:fixed;inset:0;background:rgba(26,21,16,.28);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal{background:var(--modal-bg);border:.5px solid var(--glass-bd);border-radius:18px;width:100%;max-width:420px;box-shadow:0 16px 48px rgba(0,0,0,.16);position:relative;overflow:hidden}
+.modal::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.9),transparent)}
+.modal-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px}
+.modal-title{font-family:var(--sora);font-size:14px;font-weight:700;color:var(--navy)}
+.modal-close{background:none;border:none;font-size:16px;color:var(--text3);cursor:pointer;padding:2px 6px;border-radius:6px;line-height:1}
+.modal-body{padding:0 18px 16px;display:flex;flex-direction:column;gap:7px}
+.modal-footer{display:flex;gap:7px;padding:12px 18px 16px;border-top:.5px solid var(--divider)}
+.btn-save{flex:1;padding:10px;background:var(--red);border:none;border-radius:var(--r);font-size:12px;font-weight:700;color:#fff;cursor:pointer;font-family:var(--font)}
+.btn-cancel{padding:10px 14px;background:var(--glass);border:.5px solid var(--glass-bd);border-radius:var(--r);font-size:12px;color:var(--text2);cursor:pointer;font-family:var(--font)}
+.btn-del{padding:10px 12px;background:var(--red-bg);border:.5px solid var(--red-bd);border-radius:var(--r);font-size:13px;color:var(--red);cursor:pointer}
+.rp-preview{font-size:10px;color:var(--text3);margin-top:-4px}
+
+/* EST POPUP */
+.est-popup{background:var(--modal-bg);border:.5px solid rgba(160,112,16,.18);border-radius:18px;width:100%;max-width:500px;box-shadow:0 16px 48px rgba(0,0,0,.15);overflow:hidden;position:relative;max-height:80vh;display:flex;flex-direction:column}
+.ep-hdr{display:flex;align-items:flex-start;justify-content:space-between;padding:16px 18px 12px;flex-shrink:0}
+.ep-title{font-family:var(--sora);font-size:14px;font-weight:700;color:var(--navy)}
+.ep-sub{font-size:10px;color:var(--text3);margin-top:2px}
+.ep-body{flex:1;overflow-y:auto;padding:0 14px 8px;display:flex;flex-direction:column;gap:12px}
+.wk-label{display:flex;align-items:center;gap:8px;padding:6px 4px 5px;margin-bottom:5px}
+.wk-title{font-family:var(--sora);font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em}
+.wk-line{flex:1;height:.5px;background:var(--amber-bd)}
+.wk-count{font-size:9px;color:var(--text3)}
+.wk-items{display:flex;flex-direction:column;gap:5px}
+.est-card{background:var(--glass);border:.5px solid var(--amber-bd);border-radius:var(--r2);border-left:2px solid var(--amber);overflow:hidden}
+.est-card-main{display:flex;align-items:center;gap:8px;padding:9px 11px}
+.est-icon{width:28px;height:28px;border-radius:7px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600}
+.icon-in{background:var(--green-bg);color:var(--green)}
+.icon-out{background:var(--red-bg);color:var(--red)}
+.est-info{flex:1;min-width:0}
+.est-card-name{font-size:11px;font-weight:500;color:var(--navy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:2px}
+.est-card-meta{font-size:10px;color:var(--text3)}
+.est-card-amt{font-family:var(--mono);font-size:11px;font-weight:500;white-space:nowrap;flex-shrink:0;margin-right:6px}
+.est-card-acts{display:flex;gap:4px;flex-shrink:0}
+.btn-edit-est{font-size:9px;font-weight:600;padding:4px 9px;border-radius:6px;background:var(--blue-bg);color:var(--blue);border:.5px solid var(--blue-bd);cursor:pointer;font-family:var(--font)}
+.btn-confirm{font-size:9px;font-weight:600;padding:4px 9px;border-radius:6px;background:var(--green-bg);color:var(--green);border:.5px solid var(--green-bd);cursor:pointer;font-family:var(--font)}
+.btn-del-est{font-size:9px;font-weight:600;padding:4px 8px;border-radius:6px;background:var(--red-bg);color:var(--red);border:.5px solid var(--red-bd);cursor:pointer;font-family:var(--font)}
+.est-inline-edit{padding:10px 11px;border-top:.5px solid var(--divider);background:rgba(255,255,255,.4);display:flex;flex-direction:column;gap:7px}
+.inline-row{display:flex;gap:6px}
+.inline-inp{flex:1;background:var(--input-bg);border:.5px solid var(--glass-bd);border-radius:7px;padding:7px 9px;font-size:11px;color:var(--text);font-family:var(--font);outline:none}
+.inline-inp:focus{border-color:var(--amber-bd)}
+.btn-inline-save{flex:1;padding:7px;background:var(--amber);border:none;border-radius:7px;font-size:11px;font-weight:600;color:#fff;cursor:pointer;font-family:var(--font)}
+.btn-inline-cancel{padding:7px 11px;background:var(--glass);border:.5px solid var(--glass-bd);border-radius:7px;font-size:11px;color:var(--text2);cursor:pointer;font-family:var(--font)}
+.ep-footer{padding:10px 16px 14px;border-top:.5px solid var(--divider);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.ep-note{font-size:10px;color:var(--text3)}
+.btn-confirm-all{font-size:10px;font-weight:600;padding:6px 14px;border-radius:7px;background:var(--green-bg);color:var(--green);border:.5px solid var(--green-bd);cursor:pointer;font-family:var(--font)}
+
+/* ─── MISC ──────────────────────────────────────────────────── */
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--glass-bd);border-top-color:var(--red);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:40px 20px;color:var(--text3);font-size:12px}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--scrollbar);border-radius:2px}
+
+/* ─── MONTHLY ───────────────────────────────────────────────── */
+.monthly-wrap{flex:1;overflow:auto;padding:14px 16px}
+.monthly-tbl{width:100%;border-collapse:collapse;min-width:600px}
+.monthly-tbl th{padding:7px 12px;font-family:var(--sora);font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;border-bottom:.5px solid var(--glass-bd);background:var(--sb-bg);text-align:right;white-space:nowrap}
+.monthly-tbl th:first-child{text-align:left;position:sticky;left:0;z-index:11;min-width:180px}
+.monthly-tbl td{padding:5px 12px;border-bottom:.5px solid var(--divider);font-family:var(--mono);font-size:11px;text-align:right;background:rgba(255,255,255,.45);vertical-align:middle}
+.monthly-tbl td:first-child{text-align:left;position:sticky;left:0;z-index:1;background:rgba(248,244,238,.9);font-family:var(--font);font-size:11px}
+.monthly-tbl .sec-hdr td{background:var(--amber-bg);font-family:var(--sora);font-size:9px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:.07em;padding:6px 12px}
+.monthly-tbl .sec-hdr.income td{background:var(--green-bg);color:var(--green)}
+.monthly-tbl .total-row td{font-weight:700;background:rgba(30,138,85,.06);color:var(--green)}
+.monthly-tbl .total-row td:first-child{background:rgba(30,138,85,.06)}
+.monthly-tbl .gp-row td{font-weight:700;background:rgba(30,138,85,.08)}
+.monthly-tbl .net-row td{font-weight:700;font-size:12px;background:rgba(67,123,202,.06)}
+.monthly-tbl .gap-row td{height:6px;background:var(--sb-bg);border:none;padding:0}
+
+/* ─── BUDGET ────────────────────────────────────────────────── */
+.budget-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.budget-card{background:var(--glass);border:.5px solid var(--glass-bd);border-radius:12px;padding:13px 14px;display:flex;flex-direction:column;gap:8px;box-shadow:var(--shadow)}
+.budget-bar-wrap{height:4px;background:var(--divider);border-radius:100px;overflow:hidden}
+.budget-bar{height:100%;border-radius:100px;transition:width .3s}
+
+/* ─── RECURRING ─────────────────────────────────────────────── */
+.rec-card{display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--glass);border:.5px solid var(--glass-bd);border-radius:12px;box-shadow:var(--shadow);transition:all .18s}
+.rec-card:hover{background:var(--glass-hov)}
+.rec-card.in{border-left:2px solid var(--green)}
+.rec-card.out{border-left:2px solid var(--red)}
+
+/* ─── CATEGORIES ────────────────────────────────────────────── */
+.cat-card{background:var(--glass);border:.5px solid var(--glass-bd);border-radius:12px;overflow:hidden;box-shadow:var(--shadow)}
+.cat-card-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:.5px solid var(--divider)}
+.cat-card-body{padding:8px 12px;display:flex;flex-direction:column;gap:4px}
+.sub-row{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--text2)}
+.icon-btn{background:none;border:none;font-size:14px;color:var(--text3);cursor:pointer;padding:1px 4px;border-radius:4px;line-height:1}
+.icon-btn:hover{color:var(--red)}
+</style>
+</head>
+<body>
+
+<!-- BG -->
+<div id="bg"><div class="blob"></div><div class="blob"></div><div class="blob"></div></div>
+
+<!-- APP -->
+<div id="app">
+
+  <!-- NAV -->
+  <nav id="nav">
+    <div class="nav-logo">G</div>
+    <button class="nav-btn on" data-page="forecast" title="Forecast">▤</button>
+    <button class="nav-btn" data-page="monthly" title="Monthly Report">▦</button>
+    <button class="nav-btn" data-page="budget" title="Budget">◎</button>
+    <div class="nav-sep"></div>
+    <button class="nav-btn" data-page="recurring" title="Recurring">↻</button>
+    <button class="nav-btn" data-page="categories" title="Kategori">⊞</button>
+    <div class="nav-bot">
+      <div class="nav-sep"></div>
+      <button id="theme-btn" title="Toggle dark mode">🌙</button>
+    </div>
+  </nav>
+
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <div class="sb-hdr">
+      <div class="sb-title">Tambah Transaksi</div>
+      <div class="sb-tabs">
+        <button class="sb-tab on" data-tab="ai">✦ AI</button>
+        <button class="sb-tab" data-tab="manual">✏ Manual</button>
+      </div>
+    </div>
+    <div class="sb-body" id="sb-body">
+      <!-- AI TAB -->
+      <div id="tab-ai">
+        <div style="font-size:10px;color:var(--text2);margin-bottom:7px;display:flex;align-items:center">
+          <span class="ai-dot"></span>Parse dengan AI
+        </div>
+        <textarea id="ai-text" rows="3" class="inp" style="resize:none;min-height:52px;line-height:1.5;margin-bottom:7px"
+          placeholder="cth: bayar gaji driver 5jt minggu ini&#10;atau: top up gas 50 juta dari procurement"></textarea>
+        <div style="font-size:9px;color:var(--text3);margin-bottom:8px">Enter untuk parse · Shift+Enter baris baru</div>
+        <button id="btn-upload-struk" class="inp" style="cursor:pointer;text-align:center;border-style:dashed;margin-bottom:7px">📷 Upload foto struk</button>
+        <input type="file" id="struk-input" accept="image/*" style="display:none">
+        <div id="struk-preview" style="display:none;margin-bottom:7px"></div>
+        <button id="btn-parse" class="btn-red">✦ Parse dengan AI</button>
+        <div id="ai-result" style="display:none;margin-top:10px"></div>
+      </div>
+      <!-- MANUAL TAB -->
+      <div id="tab-manual" style="display:none">
+        <div class="type-row" style="margin-bottom:8px">
+          <button class="type-btn out on" data-type="out" id="m-type-out">Keluar</button>
+          <button class="type-btn in" data-type="in" id="m-type-in">Masuk</button>
+        </div>
+        <input type="text" class="inp" id="m-name" placeholder="Nama / keterangan" style="margin-bottom:7px">
+        <div style="position:relative;margin-bottom:4px">
+          <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--text3)">Rp</span>
+          <input type="number" class="inp" id="m-amount" placeholder="0" style="padding-left:28px">
+        </div>
+        <div id="m-amount-preview" style="font-size:10px;color:var(--text3);margin-bottom:7px"></div>
+        <input type="date" class="inp" id="m-date" style="margin-bottom:7px">
+        <select class="sel" id="m-account" style="margin-bottom:7px">
+          <option value="utama">Utama</option>
+          <option value="buffer">Buffer</option>
+          <option value="petty">Petty Cash</option>
+          <option value="procurement">Procurement</option>
+        </select>
+        <select class="sel" id="m-cat" style="margin-bottom:7px"><option value="">— Kategori —</option></select>
+        <select class="sel" id="m-subcat" style="display:none;margin-bottom:7px"><option value="">— Subkategori —</option></select>
+        <label style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--text2);cursor:pointer;margin-bottom:8px">
+          <input type="checkbox" id="m-est" style="accent-color:var(--red);width:auto">Estimasi
+        </label>
+        <button id="btn-manual-add" class="btn-red">+ Tambah</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div id="main">
+
+    <!-- FORECAST PAGE -->
+    <div id="page-forecast" class="page active">
+      <div class="main-hdr">
+        <button class="sb-toggle" id="sb-toggle">‹</button>
+        <span class="page-title">Forecast 2026</span>
+        <div id="chips-wrap" style="display:flex;gap:6px;margin-left:8px"></div>
+      </div>
+      <div id="reminder-bar">
+        <span>⚠</span>
+        <span><b id="est-count">0</b> estimasi sudah lewat tanggal — perlu dikonfirmasi</span>
+        <button class="rem-btn" id="btn-show-est">Lihat estimasi ↗</button>
+      </div>
+      <div id="forecast-wrap">
+        <div class="t-head">
+          <span class="th" style="text-align:left">Tanggal</span>
+          <span class="th">Masuk</span>
+          <span class="th">Keluar</span>
+          <span class="th">Saldo akhir</span>
+          <span class="th">Status</span>
+        </div>
+        <div id="forecast-table"></div>
+      </div>
+    </div>
+
+    <!-- MONTHLY PAGE -->
+    <div id="page-monthly" class="page">
+      <div class="main-hdr">
+        <span class="page-title">Monthly Report</span>
+        <div style="margin-left:auto;display:flex;gap:10px;align-items:center">
+          <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);cursor:pointer">
+            <input type="checkbox" id="monthly-incl-est" checked style="accent-color:var(--red);width:auto">Termasuk estimasi
+          </label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);cursor:pointer">
+            <input type="checkbox" id="monthly-full-year" style="accent-color:var(--red);width:auto">Tampilkan Jan–Mar
+          </label>
+        </div>
+      </div>
+      <div class="monthly-wrap">
+        <div style="margin-bottom:12px">
+          <div style="font-family:var(--sora);font-size:14px;font-weight:700;color:var(--navy);margin-bottom:3px">Monthly Cashflow Summary 2026</div>
+          <div style="font-size:11px;color:var(--text3)">Otomatis dari Forecast & Recurring</div>
+        </div>
+        <div style="overflow-x:auto;border-radius:12px;border:.5px solid var(--glass-bd);box-shadow:var(--shadow)">
+          <table class="monthly-tbl" id="monthly-table"></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- BUDGET PAGE -->
+    <div id="page-budget" class="page">
+      <div class="main-hdr">
+        <span class="page-title">Budget</span>
+        <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
+          <div style="display:flex;gap:3px">
+            <button class="sb-tab on" data-period="monthly" id="budget-monthly-btn">Per Bulan</button>
+            <button class="sb-tab" data-period="yearly" id="budget-yearly-btn">Per Tahun</button>
+          </div>
+          <select id="budget-month-sel" class="sel" style="width:auto;font-size:10px;padding:5px 9px"></select>
+        </div>
+      </div>
+      <div class="page-body">
+        <div id="budget-summary" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px"></div>
+        <div class="budget-grid" id="budget-grid"></div>
+      </div>
+    </div>
+
+    <!-- RECURRING PAGE -->
+    <div id="page-recurring" class="page">
+      <div style="display:flex;flex:1;overflow:hidden">
+        <div style="width:218px;flex-shrink:0;background:var(--sb-bg);border-right:.5px solid var(--glass-bd);display:flex;flex-direction:column;overflow:hidden">
+          <div class="sb-hdr"><div class="sb-title">Tambah Recurring</div></div>
+          <div style="flex:1;overflow:auto;padding:11px 13px;display:flex;flex-direction:column;gap:8px">
+            <div class="type-row">
+              <button class="type-btn out on" data-type="out" id="r-type-out">Keluar</button>
+              <button class="type-btn in" data-type="in" id="r-type-in">Masuk</button>
+            </div>
+            <input type="text" class="inp" id="r-name" placeholder="Gaji tim / Top Up Gas">
+            <div style="position:relative">
+              <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--text3)">Rp</span>
+              <input type="number" class="inp" id="r-amount" style="padding-left:28px">
+            </div>
+            <select class="sel" id="r-account">
+              <option value="utama">Utama</option>
+              <option value="buffer">Buffer</option>
+              <option value="petty">Petty Cash</option>
+              <option value="procurement">Procurement</option>
+            </select>
+            <select class="sel" id="r-cat"><option value="">— Kategori —</option></select>
+            <select class="sel" id="r-subcat" style="display:none"><option value="">— Subkategori —</option></select>
+            <select class="sel" id="r-wom">
+              <option value="1">Minggu 1 — awal bulan</option>
+              <option value="2">Minggu 2 — ~tgl 8–14</option>
+              <option value="3">Minggu 3 — ~tgl 15–21</option>
+              <option value="4" selected>Minggu 4 — akhir bulan</option>
+            </select>
+            <div style="display:flex;gap:6px;align-items:center">
+              <select class="sel" id="r-start" style="flex:1"></select>
+              <span style="font-size:11px;color:var(--text3);flex-shrink:0">→</span>
+              <select class="sel" id="r-end" style="flex:1"></select>
+            </div>
+            <button class="btn-red" id="btn-add-rec">+ Tambah Recurring</button>
+            <div style="font-size:10px;color:var(--text3);line-height:1.5">Recurring muncul otomatis tiap bulan dengan tanda ↻</div>
+          </div>
+        </div>
+        <div id="main" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+          <div class="main-hdr"><span class="page-title" id="rec-count-title">Recurring (0)</span></div>
+          <div id="rec-list" class="page-body" style="display:flex;flex-direction:column;gap:8px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CATEGORIES PAGE -->
+    <div id="page-categories" class="page">
+      <div class="main-hdr"><span class="page-title">Kategori</span></div>
+      <div class="page-body">
+        <div style="background:var(--glass);border:.5px solid var(--glass-bd);border-radius:12px;padding:13px 15px;margin-bottom:14px;box-shadow:var(--shadow)">
+          <div style="font-family:var(--sora);font-size:10px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Tambah Kategori</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+            <input type="text" class="inp" id="cat-id" placeholder="ID (cth: d_opex)" style="width:120px">
+            <input type="text" class="inp" id="cat-name" placeholder="Nama kategori" style="flex:1;min-width:150px">
+            <select class="sel" id="cat-type" style="width:100px">
+              <option value="out">Keluar</option>
+              <option value="in">Masuk</option>
+            </select>
+            <button class="btn-red" id="btn-add-cat" style="width:auto;padding:8px 16px">+ Tambah</button>
+          </div>
+        </div>
+        <div id="cat-list"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div id="edit-modal" class="modal-overlay" style="display:none" onclick="closeEditModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-hdr">
+      <span class="modal-title">Edit Transaksi</span>
+      <button class="modal-close" onclick="closeEditModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="type-row">
+        <button class="type-btn in" id="em-type-in" onclick="setEditType('in')">Masuk</button>
+        <button class="type-btn out on" id="em-type-out" onclick="setEditType('out')">Keluar</button>
+      </div>
+      <input type="text" class="inp" id="em-name" placeholder="Nama transaksi">
+      <div style="position:relative">
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--text3)">Rp</span>
+        <input type="number" class="inp" id="em-amount" placeholder="0" style="padding-left:28px" oninput="updateEmPreview()">
+      </div>
+      <div id="em-preview" class="rp-preview"></div>
+      <input type="date" class="inp" id="em-date">
+      <select class="sel" id="em-account">
+        <option value="utama">Utama</option>
+        <option value="buffer">Buffer</option>
+        <option value="petty">Petty Cash</option>
+        <option value="procurement">Procurement</option>
+      </select>
+      <select class="sel" id="em-cat" onchange="updateEmSubcat()"><option value="">— Kategori —</option></select>
+      <select class="sel" id="em-subcat" style="display:none"><option value="">— Subkategori —</option></select>
+      <label style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--text2);cursor:pointer">
+        <input type="checkbox" id="em-est" style="accent-color:var(--red);width:auto">Estimasi
+      </label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-save" onclick="saveEdit()">✓ Simpan</button>
+      <button class="btn-cancel" onclick="closeEditModal()">Batal</button>
+      <button class="btn-del" onclick="deleteFromModal()">🗑</button>
+    </div>
+  </div>
+</div>
+
+<!-- EST POPUP -->
+<div id="est-popup" class="modal-overlay" style="display:none" onclick="closeEstPopup()">
+  <div class="est-popup" onclick="event.stopPropagation()">
+    <div class="ep-hdr">
+      <div>
+        <div class="ep-title">Estimasi lewat tanggal</div>
+        <div class="ep-sub" id="ep-sub">perlu dikonfirmasi atau dihapus</div>
+      </div>
+      <button class="modal-close" onclick="closeEstPopup()">×</button>
+    </div>
+    <div class="ep-body" id="ep-body"></div>
+    <div class="ep-footer">
+      <span class="ep-note">Konfirmasi = hapus tanda estimasi, data tetap</span>
+      <button class="btn-confirm-all" onclick="confirmAllEst()">✓ Konfirmasi semua</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── CONFIG ──────────────────────────────────────────────────
+const SUPA_URL  = 'https://vybfhlpmtsdtegbrdsvo.supabase.co'
+const SUPA_KEY  = 'sb_publishable_wmWHBXcFT4H_BD597wB8EA_FbvnU021'
+const { createClient } = supabase
+const db = createClient(SUPA_URL, SUPA_KEY)
+
+// ─── STATE ───────────────────────────────────────────────────
+let state = {
+  transactions: [], recurring: [], categories: [], saldoAwal: 0,
+  expandedRows: {}, collapsedMonths: new Set(), collapsedHist: true,
+  editingTx: null, budgets: {}, budgetPeriod: 'monthly', budgetMonth: new Date().getMonth(),
+  mType: 'out', rType: 'out', aiImage: null,
+  theme: localStorage.getItem('gastron-theme') || 'light'
+}
+
+// ─── UTILS ───────────────────────────────────────────────────
+const MONTHS = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des']
+const ACCT   = {utama:'Utama',buffer:'Buffer',petty:'Petty Cash',procurement:'Procurement'}
+const WOM    = ['','Awal bulan','~tgl 8–14','~tgl 15–21','Akhir bulan']
+
+function rp(n) {
+  return new Intl.NumberFormat('id-ID').format(Math.round(Number(n)||0))
+}
+function today() {
+  return new Date().toISOString().split('T')[0]
+}
+function fmtDate(d) {
+  const dt = new Date(d)
+  return `${dt.getDate()} ${MONTHS[dt.getMonth()]}`
+}
+
+// ─── WEEKS GENERATOR ────────────────────────────────────────
+function genWeeks() {
+  const weeks = []
+  let cur = new Date(2026, 3, 6)
+  const end = new Date(2026, 11, 28)
+  while (cur <= end) {
+    const e = new Date(cur); e.setDate(e.getDate()+6)
+    weeks.push({ start: cur.toISOString().split('T')[0], end: e.toISOString().split('T')[0], month: cur.getMonth(), label: `${cur.getDate()} ${MONTHS[cur.getMonth()]}` })
+    cur = new Date(cur); cur.setDate(cur.getDate()+7)
+  }
+  return weeks
+}
+function genHistWeeks() {
+  return [[0,5],[0,12],[0,19],[0,26],[1,2],[1,9],[1,16],[1,23],[2,2],[2,9],[2,16],[2,23],[2,30]].map(([mo,day]) => {
+    const d = new Date(2026,mo,day), e = new Date(2026,mo,day+6)
+    return { start: d.toISOString().split('T')[0], end: e.toISOString().split('T')[0], month: mo, label: `${day} ${MONTHS[mo]}` }
+  })
+}
+function expandRecurring() {
+  const items = []
+  for (const r of state.recurring) {
+    for (let m = r.start_month; m <= r.end_month; m++) {
+      const wom = parseInt(r.week_of_month)||4
+      const d = new Date(2026, m, 1)
+      let weekCount = 0, target = null
+      for (let day = 1; day <= 31; day++) {
+        const dt = new Date(2026, m, day)
+        if (dt.getMonth() !== m) break
+        if (dt.getDay() === 0 || day === 1) weekCount++
+        if (weekCount === wom) { target = dt; break }
+      }
+      if (!target) target = new Date(2026, m+1, 0)
+      items.push({ ...r, id: r.id+'_'+m, date: target.toISOString().split('T')[0], is_rec: true, is_est: false })
+    }
+  }
+  return items
+}
+const WEEKS = genWeeks()
+const HIST_WEEKS = genHistWeeks()
+
+// ─── THEME ───────────────────────────────────────────────────
+function applyTheme() {
+  document.documentElement.setAttribute('data-theme', state.theme)
+  document.getElementById('theme-btn').textContent = state.theme === 'light' ? '🌙' : '☀️'
+  localStorage.setItem('gastron-theme', state.theme)
+}
+document.getElementById('theme-btn').onclick = () => {
+  state.theme = state.theme === 'light' ? 'dark' : 'light'
+  applyTheme()
+}
+applyTheme()
+
+// ─── NAV ────────────────────────────────────────────────────
+let currentPage = 'forecast'
+document.querySelectorAll('.nav-btn[data-page]').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('on'))
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'))
+    btn.classList.add('on')
+    currentPage = btn.dataset.page
+    document.getElementById('page-'+currentPage).classList.add('active')
+    if (currentPage === 'monthly') renderMonthly()
+    if (currentPage === 'budget') renderBudget()
+    if (currentPage === 'recurring') renderRecurring()
+    if (currentPage === 'categories') renderCategories()
+  }
+})
+
+// ─── SIDEBAR TOGGLE ─────────────────────────────────────────
+let sbOpen = true
+document.getElementById('sb-toggle').onclick = () => {
+  sbOpen = !sbOpen
+  document.getElementById('sidebar').classList.toggle('closed', !sbOpen)
+  document.getElementById('sb-toggle').textContent = sbOpen ? '‹' : '›'
+}
+
+// ─── SIDEBAR TABS ────────────────────────────────────────────
+document.querySelectorAll('.sb-tab[data-tab]').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.sb-tab[data-tab]').forEach(b => b.classList.remove('on'))
+    btn.classList.add('on')
+    document.getElementById('tab-ai').style.display = btn.dataset.tab === 'ai' ? 'block' : 'none'
+    document.getElementById('tab-manual').style.display = btn.dataset.tab === 'manual' ? 'block' : 'none'
+  }
+})
+
+// ─── MANUAL FORM ─────────────────────────────────────────────
+document.getElementById('m-type-out').onclick = () => setMType('out')
+document.getElementById('m-type-in').onclick  = () => setMType('in')
+function setMType(t) {
+  state.mType = t
+  document.getElementById('m-type-out').className = 'type-btn out' + (t==='out'?' on':'')
+  document.getElementById('m-type-in').className  = 'type-btn in'  + (t==='in'?' on':'')
+  populateCatSelect('m-cat', 'm-subcat', t)
+}
+document.getElementById('m-amount').oninput = () => {
+  const v = parseFloat(document.getElementById('m-amount').value)
+  document.getElementById('m-amount-preview').textContent = v > 0 ? 'Rp ' + rp(v) : ''
+}
+document.getElementById('m-date').value = today()
+document.getElementById('btn-manual-add').onclick = addManual
+
+async function addManual() {
+  const name = document.getElementById('m-name').value.trim()
+  const amt  = parseFloat(document.getElementById('m-amount').value)
+  const date = document.getElementById('m-date').value
+  if (!name) { alert('Nama harus diisi'); return }
+  if (!amt||amt<=0) { alert('Jumlah harus lebih dari 0'); return }
+  const catId = document.getElementById('m-cat').value
+  const subId = document.getElementById('m-subcat').value
+  const cat   = state.categories.find(c=>c.id===catId)
+  const sub   = (cat?.subcats||[]).find(s=>s.id===subId)
+  const tx = { name, amount:amt, date, type:state.mType, account:document.getElementById('m-account').value, cat_id:catId||null, cat_name:cat?.name||null, subcat_id:subId||null, subcat_name:sub?.name||null, is_est:document.getElementById('m-est').checked, is_kemb:false }
+  try {
+    const {data,error} = await db.from('cashflow_transactions').insert(tx).select().single()
+    if (error) throw error
+    state.transactions.push(data)
+    state.transactions.sort((a,b)=>a.date.localeCompare(b.date))
+    document.getElementById('m-name').value = ''
+    document.getElementById('m-amount').value = ''
+    document.getElementById('m-amount-preview').textContent = ''
+    document.getElementById('m-date').value = today()
+    document.getElementById('m-est').checked = false
+    renderForecast()
+  } catch(e) { alert('Gagal: '+e.message) }
+}
+
+// ─── AI PARSE ────────────────────────────────────────────────
+document.getElementById('ai-text').addEventListener('keydown', e => {
+  if (e.key==='Enter'&&!e.shiftKey) { e.preventDefault(); parseAI() }
+})
+document.getElementById('btn-parse').onclick = parseAI
+document.getElementById('btn-upload-struk').onclick = () => document.getElementById('struk-input').click()
+document.getElementById('struk-input').onchange = e => {
+  const f = e.target.files[0]; if (!f) return
+  const r = new FileReader()
+  r.onload = ev => {
+    state.aiImage = { base64: ev.target.result.split(',')[1], mediaType: f.type, name: f.name }
+    document.getElementById('struk-preview').innerHTML = `<div style="display:flex;align-items:center;gap:7px;padding:7px 10px;background:var(--glass);border:.5px solid var(--glass-bd);border-radius:var(--r);font-size:11px;color:var(--text2)"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📸 ${f.name}</span><span onclick="clearStruk()" style="cursor:pointer;color:var(--text3);font-size:14px">×</span></div>`
+    document.getElementById('struk-preview').style.display = 'block'
+  }
+  r.readAsDataURL(f)
+}
+function clearStruk() {
+  state.aiImage = null
+  document.getElementById('struk-preview').style.display = 'none'
+  document.getElementById('struk-input').value = ''
+}
+
+async function parseAI() {
+  const text = document.getElementById('ai-text').value.trim()
+  if (!text && !state.aiImage) return
+  document.getElementById('btn-parse').textContent = '⏳ Parsing...'
+  document.getElementById('btn-parse').disabled = true
+  document.getElementById('ai-result').style.display = 'none'
+  try {
+    const catCtx = state.categories.map(c=>`[${c.type}] ${c.name} (id:${c.id}) → ${(c.subcats||[]).map(s=>`${s.name}(${s.id})`).join(',')}`).join('\n')
+    const userContent = []
+    if (state.aiImage) userContent.push({ type:'image', source:{ type:'base64', media_type:state.aiImage.mediaType, data:state.aiImage.base64 }})
+    userContent.push({ type:'text', text: text || 'Parse transaksi dari gambar.' })
+    const resp = await fetch('/api/claude', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-6', max_tokens:500,
+        system:`Kamu asisten keuangan Gastron. Parse input dan kembalikan JSON.\nKATEGORI:\n${catCtx}\nREKENING: utama,buffer,petty,procurement\nHARI INI: ${today()}\nKembalikan HANYA JSON: {"name":"...","amount":0,"date":"2026-06-01","type":"out","account":"utama","catId":"","catName":"","subcatId":"","subcatName":"","isEst":false}`,
+        messages:[{ role:'user', content:userContent }]
+      })
+    })
+    const data = await resp.json()
+    const raw = data.content?.[0]?.text||''
+    const parsed = JSON.parse(raw.replace(/```json|```/g,'').trim())
+    showAIResult(parsed)
+  } catch(e) {
+    alert('Gagal parse: '+e.message)
+  } finally {
+    document.getElementById('btn-parse').textContent = '✦ Parse dengan AI'
+    document.getElementById('btn-parse').disabled = false
+  }
+}
+
+function showAIResult(p) {
+  const r = document.getElementById('ai-result')
+  r.style.display = 'block'
+  r.innerHTML = `
+    <div style="background:var(--glass);border:.5px solid var(--glass-bd);border-radius:var(--r);overflow:hidden">
+      <div style="padding:9px 11px;border-bottom:.5px solid var(--divider);display:flex;align-items:center;justify-content:space-between">
+        <span style="font-family:var(--sora);font-size:10px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.06em">Hasil Parse AI</span>
+        <span onclick="this.closest('[style]').style.display='none'" style="cursor:pointer;font-size:14px;color:var(--text3)">×</span>
+      </div>
+      <div style="padding:9px 11px;display:flex;flex-direction:column;gap:5px">
+        ${[['Tipe',`<span style="color:${p.type==='in'?'var(--green)':'var(--red)'};font-weight:600">${p.type==='in'?'↑ Masuk':'↓ Keluar'}</span>`],
+           ['Nama',p.name],['Jumlah',`<span style="font-family:var(--mono);font-weight:500">Rp ${rp(p.amount)}</span>`],
+           ['Tanggal',p.date],['Rekening',ACCT[p.account]||p.account],
+           p.catName&&['Kategori',`${p.catName}${p.subcatName?' › '+p.subcatName:''}`],
+           p.isEst&&['Status','<span style="color:var(--amber);font-weight:600">⚠ Estimasi</span>']
+        ].filter(Boolean).map(([l,v])=>`<div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:9px;color:var(--text3);min-width:56px;flex-shrink:0;text-transform:uppercase;letter-spacing:.05em;font-weight:600;font-family:var(--sora)">${l}</span><span style="font-size:11px;color:var(--text)">${v}</span></div>`).join('')}
+      </div>
+      <div style="padding:8px 11px;border-top:.5px solid var(--divider);display:flex;gap:6px">
+        <button onclick="confirmAI(${JSON.stringify(p).replace(/"/g,'&quot;')})" style="flex:1;padding:7px;background:var(--red);border:none;border-radius:7px;font-size:11px;font-weight:600;color:#fff;cursor:pointer;font-family:var(--font)">✓ Simpan</button>
+        <button onclick="document.getElementById('ai-result').style.display='none'" style="padding:7px 11px;background:var(--glass);border:.5px solid var(--glass-bd);border-radius:7px;font-size:11px;color:var(--text2);cursor:pointer;font-family:var(--font)">Batal</button>
+      </div>
+    </div>`
+  r._parsed = p
+}
+
+async function confirmAI(p) {
+  try {
+    const tx = { name:p.name, amount:parseFloat(p.amount), date:p.date||today(), type:p.type||'out', account:p.account||'utama', cat_id:p.catId||null, cat_name:p.catName||null, subcat_id:p.subcatId||null, subcat_name:p.subcatName||null, is_est:!!p.isEst, is_kemb:false }
+    const {data,error} = await db.from('cashflow_transactions').insert(tx).select().single()
+    if (error) throw error
+    state.transactions.push(data)
+    state.transactions.sort((a,b)=>a.date.localeCompare(b.date))
+    document.getElementById('ai-text').value = ''
+    document.getElementById('ai-result').style.display = 'none'
+    clearStruk()
+    renderForecast()
+  } catch(e) { alert('Gagal: '+e.message) }
+}
+
+// ─── FORECAST RENDER ─────────────────────────────────────────
+function getAllItems() {
+  return [...state.transactions, ...expandRecurring()]
+}
+
+function calcForecast() {
+  let bal = state.saldoAwal
+  const all = getAllItems()
+  const histRows = []
+  for (const w of HIST_WEEKS) {
+    const ins  = state.transactions.filter(z=>z.date>=w.start&&z.date<=w.end&&z.type==='in')
+    const outs = state.transactions.filter(z=>z.date>=w.start&&z.date<=w.end&&z.type==='out')
+    if (!ins.length&&!outs.length) continue
+    histRows.push({ week:w, ins, outs, open:0, close:0, isCur:false, status:'' })
+  }
+  const rows = []
+  for (const w of WEEKS) {
+    const ins  = all.filter(z=>z.date>=w.start&&z.date<=w.end&&z.type==='in')
+    const outs = all.filter(z=>z.date>=w.start&&z.date<=w.end&&z.type==='out')
+    const ti = ins.reduce((s,z)=>s+Number(z.amount),0)
+    const to = outs.reduce((s,z)=>s+Number(z.amount),0)
+    const open=bal; bal+=ti-to; const close=bal
+    const td = today()
+    const isCur = td>=w.start&&td<=w.end
+    let status=''
+    if (close<0) status='defisit'
+    else if (close<10000000&&(ti>0||to>0)) status='mepet'
+    else if (ti>0||to>0) status='aman'
+    rows.push({ week:w, ins, outs, open, close, isCur, status })
+  }
+  return { histRows, rows }
+}
+
+function renderForecast() {
+  const { histRows, rows } = calcForecast()
+  const todayStr = today()
+  const overdueEst = state.transactions.filter(t=>t.is_est&&t.date<todayStr)
+  
+  // reminder bar
+  const bar = document.getElementById('reminder-bar')
+  if (overdueEst.length > 0) {
+    bar.classList.add('show')
+    document.getElementById('est-count').textContent = overdueEst.length
+  } else {
+    bar.classList.remove('show')
+  }
+
+  // chips
+  const defisit = rows.filter(r=>r.status==='defisit').length
+  const mepet   = rows.filter(r=>r.status==='mepet').length
+  const chips   = document.getElementById('chips-wrap')
+  chips.innerHTML = ''
+  if (defisit) chips.innerHTML += `<span class="chip chip-danger">⚠ ${defisit} minggu defisit</span>`
+  if (mepet)   chips.innerHTML += `<span class="chip chip-warn">⚡ ${mepet} minggu mepet</span>`
+
+  const wrap = document.getElementById('forecast-table')
+  let html = ''
+
+  // HIST
+  if (histRows.length) {
+    html += `<div class="hist-banner" onclick="toggleHist()">📂 Data Historis Jan–Mar 2026 · tidak mempengaruhi saldo forecast <span style="margin-left:auto">${state.collapsedHist?'▶':'▼'}</span></div>`
+    if (!state.collapsedHist) {
+      for (let mo = 0; mo < 3; mo++) {
+        const moRows = histRows.filter(r=>r.week.month===mo)
+        if (!moRows.length) continue
+        html += `<div class="mo-hdr" onclick="toggleHist()"><span class="mo-label">${MONTHS[mo]} 2026</span><div class="mo-line"></div><span class="mo-arr">▼</span></div>`
+        for (const r of moRows) html += renderWeekRow(r, true)
+      }
+    }
+    html += `<div style="height:8px"></div>`
+  }
+
+  // FORECAST
+  let lastMonth = -1
+  for (const r of rows) {
+    if (r.week.month !== lastMonth) {
+      lastMonth = r.week.month
+      const collapsed = state.collapsedMonths.has(r.week.month)
+      html += `<div class="mo-hdr" onclick="toggleMonth(${r.week.month})"><span class="mo-label">${MONTHS[r.week.month]} 2026</span><div class="mo-line"></div><span class="mo-arr">${collapsed?'▶':'▼'}</span></div>`
+    }
+    if (!state.collapsedMonths.has(r.week.month)) {
+      html += renderWeekRow(r, false)
+    }
+  }
+
+  wrap.innerHTML = html
+}
+
+function renderWeekRow(r, isHist) {
+  const hasEst = [...r.ins,...r.outs].some(z=>z.is_est)
+  let cls = isHist ? 'hist' : r.isCur ? 'cur' : r.status==='defisit' ? 'defisit' : hasEst ? 'west' : ''
+  const key = isHist ? `h_${r.week.start}` : r.week.start
+  const expIn  = state.expandedRows[key+'_in']
+  const expOut = state.expandedRows[key+'_out']
+
+  const inTotal  = r.ins.reduce((s,z)=>s+Number(z.amount),0)
+  const outTotal = r.outs.reduce((s,z)=>s+Number(z.amount),0)
+
+  const inCell = r.ins.length
+    ? `<button class="cell-btn" onclick="toggleExpand('${key}','in')"><span class="cell-total n-in">+${rp(inTotal)}</span><span class="cell-count">${expIn?'▲':'▾'} ${r.ins.length} transaksi</span></button>`
+    : `<span class="n-dim" style="text-align:right;display:block">—</span>`
+
+  const outCell = r.outs.length
+    ? `<button class="cell-btn" onclick="toggleExpand('${key}','out')"><span class="cell-total n-out">-${rp(outTotal)}</span><span class="cell-count">${expOut?'▲':'▾'} ${r.outs.length} transaksi</span></button>`
+    : `<span class="n-dim" style="text-align:right;display:block">—</span>`
+
+  const statusCell = isHist ? '' : r.status==='defisit' ? '<span class="chip chip-danger">Defisit!</span>' : r.status==='mepet' ? '<span class="chip chip-warn">Mepet</span>' : r.status==='aman' ? '<span class="chip chip-ok">Aman</span>' : '<span class="n-dim">—</span>'
+
+  let html = `<div class="week-wrap"><div class="week-row ${cls}">
+    <div class="date-cell">
+      <span class="date-num">${r.week.label}</span>
+      ${r.isCur?'<span class="tag tag-cur">minggu ini</span>':''}
+      ${isHist?'<span class="tag tag-hist">Hist</span>':''}
+      ${!isHist&&hasEst&&!r.isCur?'<span class="tag tag-est">Est</span>':''}
+    </div>
+    <div>${inCell}</div>
+    <div>${outCell}</div>
+    <div><span class="${isHist?'n-dim':r.close<0?'n-out num':'num'}">${isHist?'—':rp(r.close)}</span></div>
+    <div class="s-cell">${statusCell}</div>
+  </div>`
+
+  if (expIn  && r.ins.length  >= 1) html += renderExpand(r.ins,  'in',  key)
+  if (expOut && r.outs.length >= 1) html += renderExpand(r.outs, 'out', key)
+
+  html += '</div>'
+  return html
+}
+
+function renderExpand(items, type, key) {
+  const cls   = type==='in' ? 'n-in' : 'n-out'
+  const sign  = type==='in' ? '+' : '-'
+  const total = items.reduce((s,z)=>s+Number(z.amount),0)
+  const SHOW  = 6
+  const shown = items.slice(0, SHOW)
+  const rest  = items.length - SHOW
+
+  let html = `<div class="expand-panel">`
+  for (const z of shown) {
+    const isEst = z.is_est
+    html += `<div class="exp-item" onclick="openEdit(${JSON.stringify(z).replace(/"/g,'&quot;')})">
+      <span class="exp-name${isEst?' est':''}">${z.name}${isEst?'<span class="badge b-est">Est</span>':''}${z.is_rec?'<span class="badge b-rec">↻</span>':''}</span>
+      <span class="exp-cat">${z.subcat_name||z.cat_name||''}</span>
+      <span class="exp-amt ${cls}">${sign}${rp(z.amount)}</span>
+      <span class="exp-edit">${!z.is_rec?'✎':''}</span>
+    </div>`
+  }
+  html += `<div class="exp-footer">
+    ${rest>0?`<button class="show-more" onclick="event.stopPropagation();expandAll('${key}','${type}')">▾ +${rest} lainnya</button>`:'<span></span>'}
+    <div class="total-pill ${type==='out'?'pill-out':'pill-in'}">
+      <span class="pill-lbl">Total ${type==='out'?'keluar':'masuk'}</span>
+      <span class="pill-val ${cls}">${sign}${rp(total)}</span>
+    </div>
+  </div></div>`
+  return html
+}
+
+function toggleExpand(key, type) {
+  const k = key+'_'+type
+  state.expandedRows[k] = !state.expandedRows[k]
+  renderForecast()
+}
+function expandAll(key, type) {
+  // Show all items — need to re-render with full list
+  // For simplicity, just mark all shown
+  state.expandedRows[key+'_'+type+'_all'] = true
+  renderForecast()
+}
+function toggleHist() {
+  state.collapsedHist = !state.collapsedHist
+  renderForecast()
+}
+function toggleMonth(m) {
+  if (state.collapsedMonths.has(m)) state.collapsedMonths.delete(m)
+  else state.collapsedMonths.add(m)
+  renderForecast()
+}
+
+// ─── EDIT MODAL ──────────────────────────────────────────────
+let editingTxId = null
+
+function openEdit(tx) {
+  if (tx.is_rec) return
+  editingTxId = tx.id
+  document.getElementById('edit-modal').style.display = 'flex'
+  setEditType(tx.type||'out')
+  document.getElementById('em-name').value    = tx.name||''
+  document.getElementById('em-amount').value  = tx.amount||''
+  document.getElementById('em-date').value    = tx.date||today()
+  document.getElementById('em-account').value = tx.account||'utama'
+  document.getElementById('em-est').checked   = !!tx.is_est
+  updateEmPreview()
+  populateCatSelect('em-cat', 'em-subcat', tx.type||'out', tx.cat_id, tx.subcat_id)
+}
+
+function setEditType(t) {
+  document.getElementById('em-type-in').className  = 'type-btn in'  + (t==='in'?' on':'')
+  document.getElementById('em-type-out').className = 'type-btn out' + (t==='out'?' on':'')
+  populateCatSelect('em-cat', 'em-subcat', t)
+}
+function updateEmSubcat() {
+  const catId = document.getElementById('em-cat').value
+  const cat   = state.categories.find(c=>c.id===catId)
+  populateSubcatSelect('em-subcat', cat?.subcats||[])
+}
+function updateEmPreview() {
+  const v = parseFloat(document.getElementById('em-amount').value)
+  document.getElementById('em-preview').textContent = v > 0 ? 'Rp ' + rp(v) : ''
+}
+function closeEditModal() {
+  document.getElementById('edit-modal').style.display = 'none'
+  editingTxId = null
+}
+async function saveEdit() {
+  const name = document.getElementById('em-name').value.trim()
+  const amt  = parseFloat(document.getElementById('em-amount').value)
+  if (!name||!amt||amt<=0) return
+  const type   = document.getElementById('em-type-in').classList.contains('on') ? 'in' : 'out'
+  const catId  = document.getElementById('em-cat').value
+  const subId  = document.getElementById('em-subcat').value
+  const cat    = state.categories.find(c=>c.id===catId)
+  const sub    = (cat?.subcats||[]).find(s=>s.id===subId)
+  const updates = { name, amount:amt, date:document.getElementById('em-date').value, type, account:document.getElementById('em-account').value, cat_id:catId||null, cat_name:cat?.name||null, subcat_id:subId||null, subcat_name:sub?.name||null, is_est:document.getElementById('em-est').checked }
+  try {
+    const {data,error} = await db.from('cashflow_transactions').update(updates).eq('id',editingTxId).select().single()
+    if (error) throw error
+    const idx = state.transactions.findIndex(t=>t.id===editingTxId)
+    if (idx >= 0) state.transactions[idx] = data
+    closeEditModal()
+    renderForecast()
+    if (currentPage==='monthly') renderMonthly()
+    if (currentPage==='budget') renderBudget()
+  } catch(e) { alert('Gagal: '+e.message) }
+}
+async function deleteFromModal() {
+  if (!confirm('Hapus transaksi ini?')) return
+  try {
+    const {error} = await db.from('cashflow_transactions').delete().eq('id',editingTxId)
+    if (error) throw error
+    state.transactions = state.transactions.filter(t=>t.id!==editingTxId)
+    closeEditModal()
+    renderForecast()
+  } catch(e) { alert('Gagal: '+e.message) }
+}
+
+// ─── EST POPUP ───────────────────────────────────────────────
+document.getElementById('btn-show-est').onclick = openEstPopup
+function openEstPopup() {
+  const todayStr = today()
+  const overdue  = state.transactions.filter(t=>t.is_est&&t.date<todayStr).sort((a,b)=>a.date.localeCompare(b.date))
+  document.getElementById('ep-sub').textContent = `${overdue.length} transaksi perlu dikonfirmasi atau dihapus`
+  
+  // Group by week
+  const groups = {}
+  for (const tx of overdue) {
+    const d = new Date(tx.date)
+    const ws = new Date(d); ws.setDate(d.getDate()-d.getDay())
+    const key = ws.toISOString().split('T')[0]
+    if (!groups[key]) groups[key] = { key, items:[] }
+    groups[key].items.push(tx)
+  }
+
+  let html = ''
+  for (const g of Object.values(groups).sort((a,b)=>a.key.localeCompare(b.key))) {
+    const ws = new Date(g.key), we = new Date(g.key); we.setDate(ws.getDate()+6)
+    html += `<div class="week-group">
+      <div class="wk-label">
+        <span class="wk-title">${ws.getDate()} ${MONTHS[ws.getMonth()]} – ${we.getDate()} ${MONTHS[we.getMonth()]}</span>
+        <div class="wk-line"></div>
+        <span class="wk-count">${g.items.length} estimasi</span>
+      </div>
+      <div class="wk-items">`
+    for (const tx of g.items) {
+      html += `<div class="est-card" id="estcard-${tx.id}">
+        <div class="est-card-main">
+          <div class="est-icon ${tx.type==='in'?'icon-in':'icon-out'}">${tx.type==='in'?'↑':'↓'}</div>
+          <div class="est-info">
+            <div class="est-card-name">${tx.name}</div>
+            <div class="est-card-meta">${tx.subcat_name||tx.cat_name||'—'} · ${tx.date}</div>
+          </div>
+          <span class="est-card-amt ${tx.type==='in'?'n-in':'n-out'}">${tx.type==='in'?'+':'-'}${rp(tx.amount)}</span>
+          <div class="est-card-acts">
+            <button class="btn-edit-est" onclick="showInlineEdit('${tx.id}')">✎ Edit</button>
+            <button class="btn-confirm" onclick="confirmEst('${tx.id}')">✓</button>
+            <button class="btn-del-est" onclick="deleteEst('${tx.id}')">✕</button>
+          </div>
+        </div>
+        <div class="est-inline-edit" id="inline-${tx.id}" style="display:none">
+          <div class="inline-row">
+            <input class="inline-inp" id="il-name-${tx.id}" value="${tx.name}" placeholder="Nama">
+          </div>
+          <div class="inline-row">
+            <div style="position:relative;flex:1">
+              <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--text3)">Rp</span>
+              <input type="number" class="inline-inp" id="il-amt-${tx.id}" value="${tx.amount}" style="padding-left:27px">
+            </div>
+            <input type="date" class="inline-inp" id="il-date-${tx.id}" value="${tx.date}">
+          </div>
+          <div class="inline-actions" style="display:flex;gap:5px">
+            <button class="btn-inline-save" onclick="saveInlineEst('${tx.id}')">✓ Simpan & Konfirmasi</button>
+            <button class="btn-inline-cancel" onclick="hideInlineEdit('${tx.id}')">Batal</button>
+          </div>
+        </div>
+      </div>`
+    }
+    html += '</div></div>'
+  }
+  document.getElementById('ep-body').innerHTML = html
+  document.getElementById('est-popup').style.display = 'flex'
+}
+function closeEstPopup() {
+  document.getElementById('est-popup').style.display = 'none'
+}
+function showInlineEdit(id) {
+  document.getElementById('inline-'+id).style.display = 'block'
+}
+function hideInlineEdit(id) {
+  document.getElementById('inline-'+id).style.display = 'none'
+}
+async function confirmEst(id) {
+  try {
+    const {data,error} = await db.from('cashflow_transactions').update({is_est:false}).eq('id',id).select().single()
+    if (error) throw error
+    const idx = state.transactions.findIndex(t=>t.id===id)
+    if (idx>=0) state.transactions[idx] = data
+    document.getElementById('estcard-'+id).remove()
+    renderForecast()
+  } catch(e) { alert('Gagal: '+e.message) }
+}
+async function deleteEst(id) {
+  if (!confirm('Hapus estimasi ini?')) return
+  try {
+    const {error} = await db.from('cashflow_transactions').delete().eq('id',id)
+    if (error) throw error
+    state.transactions = state.transactions.filter(t=>t.id!==id)
+    document.getElementById('estcard-'+id).remove()
+    renderForecast()
+  } catch(e) { alert('Gagal: '+e.message) }
+}
+async function saveInlineEst(id) {
+  const name = document.getElementById('il-name-'+id).value.trim()
+  const amt  = parseFloat(document.getElementById('il-amt-'+id).value)
+  const date = document.getElementById('il-date-'+id).value
+  if (!name||!amt) return
+  try {
+    const {data,error} = await db.from('cashflow_transactions').update({name,amount:amt,date,is_est:false}).eq('id',id).select().single()
+    if (error) throw error
+    const idx = state.transactions.findIndex(t=>t.id===id)
+    if (idx>=0) state.transactions[idx] = data
+    document.getElementById('estcard-'+id).remove()
+    renderForecast()
+  } catch(e) { alert('Gagal: '+e.message) }
+}
+async function confirmAllEst() {
+  if (!confirm('Konfirmasi semua estimasi?')) return
+  const todayStr = today()
+  const overdue = state.transactions.filter(t=>t.is_est&&t.date<todayStr)
+  for (const tx of overdue) {
+    try {
+      const {data,error} = await db.from('cashflow_transactions').update({is_est:false}).eq('id',tx.id).select().single()
+      if (!error) { const idx=state.transactions.findIndex(t=>t.id===tx.id); if(idx>=0) state.transactions[idx]=data }
+    } catch{}
+  }
+  closeEstPopup()
+  renderForecast()
+}
+
+// ─── CAT SELECT HELPERS ──────────────────────────────────────
+function populateCatSelect(catSelId, subSelId, type, selCatId='', selSubId='') {
+  const cats = state.categories.filter(c=>c.type===type)
+  const catSel = document.getElementById(catSelId)
+  catSel.innerHTML = '<option value="">— Kategori —</option>' + cats.map(c=>`<option value="${c.id}" ${c.id===selCatId?'selected':''}>${c.name}</option>`).join('')
+  catSel.onchange = () => {
+    const cat = state.categories.find(c=>c.id===catSel.value)
+    populateSubcatSelect(subSelId, cat?.subcats||[], selSubId)
+  }
+  const cat = state.categories.find(c=>c.id===selCatId)
+  populateSubcatSelect(subSelId, cat?.subcats||[], selSubId)
+}
+function populateSubcatSelect(selId, subcats, selId2='') {
+  const sel = document.getElementById(selId)
+  if (!sel) return
+  if (!subcats.length) { sel.style.display='none'; return }
+  sel.style.display='block'
+  sel.innerHTML = '<option value="">— Subkategori —</option>' + subcats.map(s=>`<option value="${s.id}" ${s.id===selId2?'selected':''}>${s.name}</option>`).join('')
+}
+
+// ─── MONTHLY REPORT ──────────────────────────────────────────
+function renderMonthly() {
+  const inclEst  = document.getElementById('monthly-incl-est').checked
+  const fullYear = document.getElementById('monthly-full-year').checked
+  const months   = fullYear ? [0,1,2,3,4,5,6,7,8,9,10,11] : [3,4,5,6,7,8,9,10,11]
+  const COGS     = ['d_cogs']
+  const all = getAllItems()
+
+  const data = {}
+  for (const m of months) data[m] = { in:{}, out:{} }
+  for (const z of all) {
+    if (!z.date||(z.is_kemb)) continue
+    if (!inclEst&&z.is_est) continue
+    const m = new Date(z.date).getMonth()
+    if (!months.includes(m)) continue
+    const bucket = z.type==='in' ? data[m].in : data[m].out
+    const cid = z.cat_id||'__unc', cname = z.cat_name||'Lainnya', sname = z.subcat_name||z.name
+    if (!bucket[cid]) bucket[cid] = { catName:cname, subs:{}, items:{} }
+    bucket[cid].subs[sname] = (bucket[cid].subs[sname]||0)+Number(z.amount)
+    if (!bucket[cid].items[sname]) bucket[cid].items[sname]=[]
+    bucket[cid].items[sname].push(z)
+  }
+
+  const mRev={},mCOGS={},mGP={},mOpex={},mNet={}
+  for (const m of months) {
+    mRev[m]  = Object.values(data[m].in).reduce((s,c)=>s+Object.values(c.subs).reduce((a,b)=>a+b,0),0)
+    mCOGS[m] = Object.entries(data[m].out).filter(([id])=>COGS.includes(id)).reduce((s,[,c])=>s+Object.values(c.subs).reduce((a,b)=>a+b,0),0)
+    mGP[m]   = mRev[m]-mCOGS[m]
+    mOpex[m] = Object.values(data[m].out).reduce((s,c)=>s+Object.values(c.subs).reduce((a,b)=>a+b,0),0)
+    mNet[m]  = mRev[m]-mOpex[m]
+  }
+  const totRev=months.reduce((s,m)=>s+mRev[m],0)
+  const totGP=months.reduce((s,m)=>s+mGP[m],0)
+  const totNet=months.reduce((s,m)=>s+mNet[m],0)
+
+  const allOut={}
+  for (const m of months) for (const [cid,cv] of Object.entries(data[m].out)) { if(!allOut[cid]) allOut[cid]=cv.catName }
+  const ORDER=['d_cogs','d_opex','d_sal','d_off','d_corp','d_capex','d_liab']
+  const sortedCats=[...ORDER.filter(id=>allOut[id]),...Object.keys(allOut).filter(id=>!ORDER.includes(id))]
+
+  function nc(v,neg,items,label) {
+    if (!v) return `<td style="text-align:right;color:var(--text3);font-family:var(--mono);font-size:11px">—</td>`
+    const c = neg?'var(--red)':v>0?'var(--green)':'var(--red)'
+    const t = `${neg||v<0?'':'+'}${neg?'-':''}${rp(Math.abs(v))}`
+    if (items&&items.length) return `<td style="text-align:right"><span style="font-family:var(--mono);font-size:11px;color:${c};cursor:pointer;text-decoration:underline;text-underline-offset:2px" onclick='showMonthlyDetail(${JSON.stringify(items)},${JSON.stringify(label)})'>${t}</span></td>`
+    return `<td style="text-align:right"><span style="font-family:var(--mono);font-size:11px;color:${c}">${t}</span></td>`
+  }
+  function pct(v,rev) { return rev?(v/rev*100).toFixed(1)+'%':'—' }
+
+  const th1 = `style="padding:7px 12px;font-family:var(--sora);font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;border-bottom:.5px solid var(--glass-bd);background:var(--sb-bg);text-align:left;position:sticky;left:0;z-index:11;min-width:180px;white-space:nowrap"`
+  const th  = `style="padding:7px 12px;font-family:var(--sora);font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;border-bottom:.5px solid var(--glass-bd);background:var(--sb-bg);text-align:right;white-space:nowrap"`
+  const td1 = `style="padding:5px 12px;border-bottom:.5px solid var(--divider);font-size:11px;color:var(--text);background:rgba(248,244,238,.9);position:sticky;left:0;z-index:1;min-width:180px"`
+  const td1b = `style="padding:5px 12px;border-bottom:.5px solid var(--divider);font-size:11px;color:var(--text);background:rgba(248,244,238,.9);position:sticky;left:0;z-index:1;min-width:180px;padding-left:22px;color:var(--text2)"`
+
+  let html = `<thead><tr><th ${th1}>Kategori</th>${months.map(m=>`<th ${th}>${MONTHS[m]}</th>`).join('')}<th ${th}>Total</th></tr></thead><tbody>`
+
+  // INCOME
+  html += `<tr class="sec-hdr income"><td colspan="${months.length+2}" style="padding:6px 12px;font-family:var(--sora);font-size:9px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.07em;background:rgba(30,138,85,.08)">💰 Pendapatan</td></tr>`
+  const allIn={}
+  for(const m of months) for(const [cid,cv] of Object.entries(data[m].in)) { if(!allIn[cid]) allIn[cid]=cv.catName }
+  for(const [cid,cname] of Object.entries(allIn)) {
+    html += `<tr><td ${td1} style="${td1.slice(7,-1)};font-weight:600">${cname}</td>${months.map(m=>{const c=data[m].in[cid];const v=c?Object.values(c.subs).reduce((a,b)=>a+b,0):0;return nc(v,false,c?Object.values(c.items).flat():null,`${cname} · ${MONTHS[m]}`)}).join('')}${nc(months.reduce((s,m)=>{const c=data[m].in[cid];return s+(c?Object.values(c.subs).reduce((a,b)=>a+b,0):0)},0))}</tr>`
+    const firstM = months.find(m=>data[m].in[cid])
+    if (firstM!==undefined) {
+      for(const sname of Object.keys(data[firstM].in[cid]?.subs||{})) {
+        html += `<tr><td ${td1b}>${sname}</td>${months.map(m=>{const v=data[m].in[cid]?.subs[sname]||0;return nc(v,false,data[m].in[cid]?.items[sname]||null,`${sname} · ${MONTHS[m]}`)}).join('')}${nc(months.reduce((s,m)=>s+(data[m].in[cid]?.subs[sname]||0),0))}</tr>`
+      }
+    }
+  }
+  html += `<tr><td ${td1} style="${td1.slice(7,-1)};font-weight:700;color:var(--green);background:rgba(30,138,85,.06)">TOTAL PENDAPATAN</td>${months.map(m=>`<td style="text-align:right;background:rgba(30,138,85,.06)"><span style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--green)">${mRev[m]?rp(mRev[m]):'—'}</span></td>`).join('')}<td style="text-align:right;background:rgba(30,138,85,.06)"><span style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--green)">${totRev?rp(totRev):'—'}</span></td></tr>`
+  html += `<tr><td colspan="${months.length+2}" style="height:6px;background:var(--sb-bg);border:none;padding:0"></td></tr>`
+
+  // COGS
+  html += `<tr class="sec-hdr"><td colspan="${months.length+2}" style="padding:6px 12px;font-family:var(--sora);font-size:9px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.07em;background:var(--red-bg)">📦 Cost of Goods Sold</td></tr>`
+  for(const cid of sortedCats.filter(id=>COGS.includes(id))) {
+    html += `<tr><td ${td1}>${allOut[cid]}</td>${months.map(m=>{const c=data[m].out[cid];const v=c?Object.values(c.subs).reduce((a,b)=>a+b,0):0;return nc(v,true,c?Object.values(c.items).flat():null,`${allOut[cid]} · ${MONTHS[m]}`)}).join('')}${nc(months.reduce((s,m)=>{const c=data[m].out[cid];return s+(c?Object.values(c.subs).reduce((a,b)=>a+b,0):0)},0),true)}</tr>`
+  }
+  html += `<tr><td ${td1} style="${td1.slice(7,-1)};font-weight:700;background:rgba(30,138,85,.08)">GROSS PROFIT</td>${months.map(m=>`<td style="text-align:right;background:rgba(30,138,85,.08)"><span style="font-family:var(--mono);font-size:11px;font-weight:700;color:${mGP[m]>=0?'var(--green)':'var(--red)'}">${mGP[m]?rp(Math.abs(mGP[m])):'—'}</span></td>`).join('')}<td style="text-align:right;background:rgba(30,138,85,.08)"><span style="font-family:var(--mono);font-size:11px;font-weight:700;color:${totGP>=0?'var(--green)':'var(--red)'}">${totGP?rp(Math.abs(totGP)):'—'}</span></td></tr>`
+  html += `<tr><td ${td1} style="${td1.slice(7,-1)};color:var(--text3);font-size:10px">Gross Margin</td>${months.map(m=>`<td style="text-align:right;font-size:10px;color:var(--text3)">${pct(mGP[m],mRev[m])}</td>`).join('')}<td style="text-align:right;font-size:10px;color:var(--text3)">${pct(totGP,totRev)}</td></tr>`
+  html += `<tr><td colspan="${months.length+2}" style="height:6px;background:var(--sb-bg);border:none;padding:0"></td></tr>`
+
+  // OPEX
+  html += `<tr class="sec-hdr"><td colspan="${months.length+2}" style="padding:6px 12px;font-family:var(--sora);font-size:9px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:.07em;background:var(--amber-bg)">📊 Operating Expenses</td></tr>`
+  for(const cid of sortedCats.filter(id=>!COGS.includes(id))) {
+    html += `<tr><td ${td1}>${allOut[cid]}</td>${months.map(m=>{const c=data[m].out[cid];const v=c?Object.values(c.subs).reduce((a,b)=>a+b,0):0;return nc(v,true,c?Object.values(c.items).flat():null,`${allOut[cid]} · ${MONTHS[m]}`)}).join('')}${nc(months.reduce((s,m)=>{const c=data[m].out[cid];return s+(c?Object.values(c.subs).reduce((a,b)=>a+b,0):0)},0),true)}</tr>`
+  }
+  html += `<tr><td colspan="${months.length+2}" style="height:6px;background:var(--sb-bg);border:none;padding:0"></td></tr>`
+
+  // NET
+  html += `<tr><td ${td1} style="${td1.slice(7,-1)};font-weight:700;background:rgba(67,123,202,.06)">NET CASHFLOW</td>${months.map(m=>`<td style="text-align:right;background:rgba(67,123,202,.06)"><span style="font-family:var(--mono);font-size:12px;font-weight:700;color:${mNet[m]>=0?'var(--green)':'var(--red)'}">${mNet[m]?rp(Math.abs(mNet[m])):'—'}</span></td>`).join('')}<td style="text-align:right;background:rgba(67,123,202,.06)"><span style="font-family:var(--mono);font-size:12px;font-weight:700;color:${totNet>=0?'var(--green)':'var(--red)'}">${totNet?rp(Math.abs(totNet)):'—'}</span></td></tr>`
+  html += `<tr><td ${td1} style="${td1.slice(7,-1)};color:var(--text3);font-size:10px;background:rgba(67,123,202,.04)">Net Margin</td>${months.map(m=>`<td style="text-align:right;font-size:10px;color:var(--text3);background:rgba(67,123,202,.04)">${pct(mNet[m],mRev[m])}</td>`).join('')}<td style="text-align:right;font-size:10px;color:var(--text3);background:rgba(67,123,202,.04)">${pct(totNet,totRev)}</td></tr>`
+  html += '</tbody>'
+  document.getElementById('monthly-table').innerHTML = html
+}
+
+function showMonthlyDetail(items, label) {
+  // simple alert for now
+  const total = items.reduce((s,z)=>s+Number(z.amount),0)
+  alert(`${label}\n${items.length} transaksi · Total Rp ${rp(total)}\n\n${items.map(z=>`• ${z.name}: Rp ${rp(z.amount)} (${z.date})`).join('\n')}`)
+}
+
+document.getElementById('monthly-incl-est').onchange = renderMonthly
+document.getElementById('monthly-full-year').onchange = renderMonthly
+
+// ─── BUDGET ──────────────────────────────────────────────────
+function renderBudget() {
+  const { period, budgetMonth } = state
+  const COGS = ['d_cogs']
+  const all = getAllItems()
+  const spending = {}
+  for (const z of all) {
+    if (!z.date||z.type!=='out') continue
+    const m = new Date(z.date).getMonth()
+    if (period==='monthly'&&m!==budgetMonth) continue
+    const cid = z.cat_id||'__unc'
+    spending[cid] = (spending[cid]||0)+Number(z.amount)
+  }
+  const outCats = state.categories.filter(c=>c.type==='out')
+  const ORDER = ['d_cogs','d_opex','d_sal','d_off','d_corp','d_capex','d_liab']
+  const sorted = [...ORDER.filter(id=>outCats.find(c=>c.id===id)).map(id=>outCats.find(c=>c.id===id)), ...outCats.filter(c=>!ORDER.includes(c.id))]
+
+  const getBudget = cid => state.budgets[`${cid}_${period}`]||0
+  const totalSpent    = Object.values(spending).reduce((a,b)=>a+b,0)
+  const totalBudgeted = sorted.reduce((s,c)=>s+getBudget(c.id),0)
+  const totalSisa     = totalBudgeted-totalSpent
+  const catsOver      = sorted.filter(c=>{const b=getBudget(c.id);return b>0&&(spending[c.id]||0)>b}).length
+
+  // Summary
+  document.getElementById('budget-summary').innerHTML = [
+    ['Total Pengeluaran', rp(totalSpent), period==='monthly'?MONTHS[budgetMonth]+' 2026':'Jan–Des', 'var(--red)'],
+    ['Total Budget', totalBudgeted?rp(totalBudgeted):'Belum diset', sorted.filter(c=>getBudget(c.id)>0).length+' kategori diset', 'var(--text)'],
+    ['Sisa Budget', totalBudgeted?rp(Math.abs(totalSisa)):'—', catsOver>0?`⚠ ${catsOver} over`:'✓ Dalam batas', totalSisa<0?'var(--red)':'var(--green)']
+  ].map(([l,v,s,c])=>`<div style="background:var(--glass);border:.5px solid var(--glass-bd);border-radius:12px;padding:12px 14px;box-shadow:var(--shadow)"><div style="font-family:var(--sora);font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">${l}</div><div style="font-family:var(--mono);font-size:14px;font-weight:600;color:${c};margin-bottom:3px">${v}</div><div style="font-size:10px;color:var(--text3)">${s}</div></div>`).join('')
+
+  // Grid
+  document.getElementById('budget-grid').innerHTML = sorted.map(cat => {
+    const spent  = spending[cat.id]||0
+    const budget = getBudget(cat.id)
+    const pct    = budget>0 ? Math.min((spent/budget)*100,100) : 0
+    const rawPct = budget>0 ? (spent/budget)*100 : 0
+    const over   = rawPct>=100, warn = rawPct>=70&&rawPct<100
+    const barColor = over?'var(--red)':warn?'var(--amber)':'var(--green)'
+    const bdColor  = over?'var(--red-bd)':warn?'var(--amber-bd)':'var(--glass-bd)'
+    return `<div class="budget-card" style="border-color:${bdColor}">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:2px">${cat.name}</div>
+          ${spent?`<div style="font-size:11px;display:flex;gap:4px;align-items:baseline"><span style="font-family:var(--mono);color:${over?'var(--red)':warn?'var(--amber)':'var(--text)';font-weight:500}">${rp(spent)}</span>${budget?`<span style="color:var(--text3)">/</span><span style="font-family:var(--mono);color:var(--text3);font-size:10px">${rp(budget)}</span>`:''}</div>`:'<div style="font-size:10px;color:var(--text3)">Belum ada pengeluaran</div>'}
+        </div>
+        <div style="display:flex;gap:5px;align-items:center;flex-shrink:0">
+          ${budget?`<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:100px;background:${over?'var(--red-bg)':warn?'var(--amber-bg)':'var(--green-bg)'};color:${over?'var(--red)':warn?'var(--amber)':'var(--green)'};border:.5px solid ${bdColor}">${rawPct.toFixed(0)}%</span>`:''}
+          <button onclick="setBudgetEdit('${cat.id}')" style="font-size:9px;font-weight:600;padding:3px 9px;border-radius:6px;background:none;border:.5px solid var(--glass-bd);color:var(--text2);cursor:pointer;font-family:var(--font)">${budget?'Edit':'+ Set'}</button>
+        </div>
+      </div>
+      ${budget?`<div class="budget-bar-wrap"><div class="budget-bar" style="width:${pct}%;background:${barColor}"></div></div>`:''}
+      <div id="budget-edit-${cat.id}" style="display:none;display:none">
+        <div style="display:flex;gap:5px">
+          <input type="number" id="budget-input-${cat.id}" placeholder="Contoh: 50000000" class="inp" style="flex:1;font-size:11px" onkeydown="if(event.key==='Enter')saveBudget('${cat.id}')">
+          <button onclick="saveBudget('${cat.id}')" style="padding:6px 11px;background:var(--red);border:none;border-radius:var(--r);font-size:11px;font-weight:600;color:#fff;cursor:pointer;font-family:var(--font)">Simpan</button>
+          <button onclick="document.getElementById('budget-edit-${cat.id}').style.display='none'" style="padding:6px 9px;background:var(--glass);border:.5px solid var(--glass-bd);border-radius:var(--r);font-size:11px;color:var(--text2);cursor:pointer;font-family:var(--font)">✕</button>
+        </div>
+      </div>
+      ${!budget?'<div style="font-size:10px;color:var(--text3);font-style:italic">Belum ada budget limit</div>':''}
+    </div>`
+  }).join('')
+}
+
+function setBudgetEdit(catId) {
+  const el = document.getElementById('budget-edit-'+catId)
+  el.style.display = el.style.display==='none'||!el.style.display ? 'block' : 'none'
+  if (el.style.display==='block') {
+    document.getElementById('budget-input-'+catId).value = state.budgets[`${catId}_${state.budgetPeriod}`]||''
+    document.getElementById('budget-input-'+catId).focus()
+  }
+}
+async function saveBudget(catId) {
+  const v = parseFloat(document.getElementById('budget-input-'+catId).value)
+  if (isNaN(v)||v<0) return
+  try {
+    await db.from('cashflow_budgets').upsert({ cat_id:catId, period:state.budgetPeriod, amount:v, updated_at:new Date().toISOString() }, { onConflict:'cat_id,period' })
+    state.budgets[`${catId}_${state.budgetPeriod}`] = v
+    renderBudget()
+  } catch(e) { alert('Gagal: '+e.message) }
+}
+
+// Budget period toggle
+document.getElementById('budget-monthly-btn').onclick = () => {
+  state.budgetPeriod = 'monthly'
+  document.getElementById('budget-monthly-btn').classList.add('on')
+  document.getElementById('budget-yearly-btn').classList.remove('on')
+  document.getElementById('budget-month-sel').style.display = 'block'
+  renderBudget()
+}
+document.getElementById('budget-yearly-btn').onclick = () => {
+  state.budgetPeriod = 'yearly'
+  document.getElementById('budget-yearly-btn').classList.add('on')
+  document.getElementById('budget-monthly-btn').classList.remove('on')
+  document.getElementById('budget-month-sel').style.display = 'none'
+  renderBudget()
+}
+
+// Budget month select
+const bms = document.getElementById('budget-month-sel')
+MONTHS.forEach((m,i) => { const o=document.createElement('option'); o.value=i; o.textContent=m+' 2026'; bms.appendChild(o) })
+bms.value = state.budgetMonth
+bms.onchange = () => { state.budgetMonth = parseInt(bms.value); renderBudget() }
+
+// ─── RECURRING ───────────────────────────────────────────────
+function renderRecurring() {
+  const list = document.getElementById('rec-list')
+  document.getElementById('rec-count-title').textContent = `Recurring (${state.recurring.length})`
+  if (!state.recurring.length) {
+    list.innerHTML = `<div class="empty-state"><div style="font-size:28px">↻</div><div style="font-family:var(--sora);font-size:12px;font-weight:600;color:var(--text2)">Belum ada recurring</div><div style="font-size:11px;color:var(--text3)">Tambah di sidebar kiri</div></div>`
+    return
+  }
+  list.innerHTML = state.recurring.map(r => {
+    const months = []
+    for (let m=r.start_month;m<=r.end_month;m++) months.push(m)
+    return `<div class="rec-card ${r.type}">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:500;color:var(--navy);margin-bottom:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          ${r.name}
+          <span style="background:var(--blue-bg);color:var(--blue);border:.5px solid var(--blue-bd);font-size:8px;font-weight:700;padding:1px 5px;border-radius:100px">↻</span>
+          <span style="background:var(--red-bg);color:var(--red);font-size:9px;font-weight:600;padding:1px 5px;border-radius:4px">${ACCT[r.account]||r.account}</span>
+          ${(r.subcat_name||r.cat_name)?`<span style="font-size:10px;color:var(--text3)">${r.subcat_name||r.cat_name}</span>`:''}
+        </div>
+        <div style="font-size:10px;color:var(--text3);margin-bottom:5px">${WOM[r.week_of_month]||''} · ${MONTHS[r.start_month]} – ${MONTHS[r.end_month]}</div>
+        <div style="display:flex;gap:3px;flex-wrap:wrap">${months.map(m=>`<span style="font-size:9px;padding:1px 6px;background:var(--glass);border:.5px solid var(--glass-bd);border-radius:4px;color:var(--text2)">${MONTHS[m]}</span>`).join('')}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
+        <span style="font-family:var(--mono);font-size:13px;font-weight:600;color:${r.type==='in'?'var(--green)':'var(--red)'}">${r.type==='in'?'+':'-'}${rp(r.amount)}</span>
+        <button onclick="deleteRec('${r.id}')" style="background:var(--red-bg);border:.5px solid var(--red-bd);border-radius:6px;padding:3px 8px;font-size:10px;color:var(--red);cursor:pointer;font-family:var(--font)">Hapus</button>
+      </div>
+    </div>`
+  }).join('')
+}
+
+// Recurring month selects
+const RS = document.getElementById('r-start'), RE = document.getElementById('r-end')
+MONTHS.forEach((m,i) => {
+  const o1=document.createElement('option'); o1.value=i; o1.textContent=m; RS.appendChild(o1)
+  const o2=document.createElement('option'); o2.value=i; o2.textContent=m; RE.appendChild(o2)
+})
+RS.value=3; RE.value=11
+
+document.getElementById('r-type-out').onclick = () => setRType('out')
+document.getElementById('r-type-in').onclick  = () => setRType('in')
+function setRType(t) {
+  state.rType = t
+  document.getElementById('r-type-out').className = 'type-btn out' + (t==='out'?' on':'')
+  document.getElementById('r-type-in').className  = 'type-btn in'  + (t==='in'?' on':'')
+  populateCatSelect('r-cat', 'r-subcat', t)
+}
+document.getElementById('btn-add-rec').onclick = async () => {
+  const name = document.getElementById('r-name').value.trim()
+  const amt  = parseFloat(document.getElementById('r-amount').value)
+  if (!name||!amt||amt<=0) { alert('Nama dan jumlah harus diisi'); return }
+  const catId = document.getElementById('r-cat').value
+  const subId = document.getElementById('r-subcat').value
+  const cat   = state.categories.find(c=>c.id===catId)
+  const sub   = (cat?.subcats||[]).find(s=>s.id===subId)
+  const rec = { name, amount:amt, type:state.rType, account:document.getElementById('r-account').value, cat_id:catId||null, cat_name:cat?.name||null, subcat_id:subId||null, subcat_name:sub?.name||null, week_of_month:parseInt(document.getElementById('r-wom').value), start_month:parseInt(RS.value), end_month:parseInt(RE.value) }
+  try {
+    const {data,error} = await db.from('cashflow_recurring').insert(rec).select().single()
+    if (error) throw error
+    state.recurring.push(data)
+    document.getElementById('r-name').value=''
+    document.getElementById('r-amount').value=''
+    renderRecurring()
+    renderForecast()
+  } catch(e) { alert('Gagal: '+e.message) }
+}
+async function deleteRec(id) {
+  if (!confirm('Hapus recurring ini?')) return
+  try {
+    const {error} = await db.from('cashflow_recurring').delete().eq('id',id)
+    if (error) throw error
+    state.recurring = state.recurring.filter(r=>r.id!==id)
+    renderRecurring()
+    renderForecast()
+  } catch(e) { alert('Gagal: '+e.message) }
+}
+
+// ─── CATEGORIES ──────────────────────────────────────────────
+function renderCategories() {
+  const inCats  = state.categories.filter(c=>c.type==='in')
+  const outCats = state.categories.filter(c=>c.type==='out')
+  let html = ''
+  for (const [label, cats] of [['💰 Pendapatan', inCats], ['💸 Pengeluaran', outCats]]) {
+    html += `<div style="margin-bottom:16px">
+      <div style="font-family:var(--sora);font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;display:flex;align-items:center;gap:8px"><span>${label}</span><div style="flex:1;height:.5px;background:var(--glass-bd)"></div></div>
+      ${!cats.length?'<div style="font-size:11px;color:var(--text3);padding:12px 0">Belum ada kategori</div>':''}
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">
+        ${cats.map(cat=>`<div class="cat-card">
+          <div class="cat-card-hdr">
+            <div><div style="font-size:12px;font-weight:600;color:var(--navy)">${cat.name}</div><div style="font-size:9px;color:var(--text3);font-family:var(--mono)">${cat.id}</div></div>
+            <button class="icon-btn" onclick="deleteCat('${cat.id}')">×</button>
+          </div>
+          <div class="cat-card-body">
+            ${(cat.subcats||[]).map(s=>`<div class="sub-row"><span>${s.name}</span><button class="icon-btn" onclick="deleteSubcat('${cat.id}','${s.id}')">×</button></div>`).join('')}
+            <div style="display:flex;gap:5px;margin-top:4px">
+              <input type="text" class="inp" id="sub-inp-${cat.id}" placeholder="+ Tambah subkategori..." style="flex:1;font-size:10px;padding:5px 8px" onkeydown="if(event.key==='Enter')addSubcat('${cat.id}')">
+              <button onclick="addSubcat('${cat.id}')" style="background:var(--glass);border:.5px solid var(--glass-bd);border-radius:var(--r);padding:5px 10px;font-size:11px;color:var(--text2);cursor:pointer;font-family:var(--font)">+</button>
+            </div>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>`
+  }
+  document.getElementById('cat-list').innerHTML = html
+}
+document.getElementById('btn-add-cat').onclick = async () => {
+  const id   = document.getElementById('cat-id').value.trim()
+  const name = document.getElementById('cat-name').value.trim()
+  const type = document.getElementById('cat-type').value
+  if (!id||!name) { alert('ID dan Nama harus diisi'); return }
+  try {
+    const {data,error} = await db.from('cashflow_categories').upsert({id,name,type,subcats:[]},{onConflict:'id'}).select().single()
+    if (error) throw error
+    state.categories = [...state.categories.filter(c=>c.id!==id), data]
+    document.getElementById('cat-id').value=''
+    document.getElementById('cat-name').value=''
+    renderCategories()
+    populateCatSelect('m-cat','m-subcat',state.mType)
+    populateCatSelect('r-cat','r-subcat',state.rType)
+  } catch(e) { alert('Gagal: '+e.message) }
+}
+async function deleteCat(id) {
+  if (!confirm('Hapus kategori ini?')) return
+  try {
+    const {error} = await db.from('cashflow_categories').delete().eq('id',id)
+    if (error) throw error
+    state.categories = state.categories.filter(c=>c.id!==id)
+    renderCategories()
+  } catch(e) { alert('Gagal: '+e.message) }
+}
+async function addSubcat(catId) {
+  const el   = document.getElementById('sub-inp-'+catId)
+  const name = el.value.trim(); if (!name) return
+  const cat  = state.categories.find(c=>c.id===catId); if (!cat) return
+  const subId = catId+'_'+Date.now().toString(36)
+  const newSubs = [...(cat.subcats||[]), {id:subId,name}]
+  try {
+    const {data,error} = await db.from('cashflow_categories').upsert({...cat,subcats:newSubs},{onConflict:'id'}).select().single()
+    if (error) throw error
+    state.categories = state.categories.map(c=>c.id===catId?data:c)
+    el.value=''
+    renderCategories()
+  } catch(e) { alert('Gagal: '+e.message) }
+}
+async function deleteSubcat(catId, subId) {
+  const cat = state.categories.find(c=>c.id===catId); if (!cat) return
+  const newSubs = (cat.subcats||[]).filter(s=>s.id!==subId)
+  try {
+    const {data,error} = await db.from('cashflow_categories').upsert({...cat,subcats:newSubs},{onConflict:'id'}).select().single()
+    if (error) throw error
+    state.categories = state.categories.map(c=>c.id===catId?data:c)
+    renderCategories()
+  } catch(e) { alert('Gagal: '+e.message) }
+}
+
+// ─── REALTIME ────────────────────────────────────────────────
+db.channel('cashflow-realtime')
+  .on('postgres_changes', { event:'*', schema:'public', table:'cashflow_transactions' }, payload => {
+    if (payload.eventType==='INSERT') {
+      if (!state.transactions.find(t=>t.id===payload.new.id)) {
+        state.transactions.push(payload.new)
+        state.transactions.sort((a,b)=>a.date.localeCompare(b.date))
+      }
+    } else if (payload.eventType==='UPDATE') {
+      const idx = state.transactions.findIndex(t=>t.id===payload.new.id)
+      if (idx>=0) state.transactions[idx] = payload.new
+    } else if (payload.eventType==='DELETE') {
+      state.transactions = state.transactions.filter(t=>t.id!==payload.old.id)
+    }
+    if (currentPage==='forecast') renderForecast()
+    if (currentPage==='monthly') renderMonthly()
+  })
+  .subscribe()
+
+// ─── INIT ────────────────────────────────────────────────────
+async function init() {
+  // Set default collapsed months
+  const now = new Date().getMonth()
+  for (const w of WEEKS) { if (w.month < now) state.collapsedMonths.add(w.month) }
+
+  // Populate month selects
+  populateCatSelect('m-cat', 'm-subcat', 'out')
+  populateCatSelect('r-cat', 'r-subcat', 'out')
+
+  try {
+    const [txRes, recRes, catRes, cfgRes, budRes] = await Promise.all([
+      db.from('cashflow_transactions').select('*').gte('date','2026-01-01').lte('date','2026-12-31').order('date'),
+      db.from('cashflow_recurring').select('*').order('created_at'),
+      db.from('cashflow_categories').select('*').order('type',{ascending:false}),
+      db.from('cashflow_config').select('*').eq('key','saldo_awal').single(),
+      db.from('cashflow_budgets').select('*')
+    ])
+    state.transactions = txRes.data||[]
+    state.recurring    = recRes.data||[]
+    state.categories   = catRes.data||[]
+    state.saldoAwal    = Number(cfgRes.data?.value)||0
+
+    // budgets
+    for (const b of (budRes.data||[])) state.budgets[`${b.cat_id}_${b.period}`] = b.amount
+
+    // populate selects with categories
+    populateCatSelect('m-cat', 'm-subcat', state.mType)
+    populateCatSelect('r-cat', 'r-subcat', state.rType)
+
+  } catch(e) { console.error('Init error:', e) }
+
+  renderForecast()
+}
+
+init()
+</script>
+</body>
 </html>
