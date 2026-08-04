@@ -323,6 +323,9 @@ html,body{height:100%;font-family:var(--font);background:var(--bg-base,#F5F0E6);
         <label style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--text2);cursor:pointer;margin-bottom:8px">
           <input type="checkbox" id="m-est" style="accent-color:var(--red);width:auto">Estimasi
         </label>
+        <label style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--text2);cursor:pointer;margin-bottom:8px">
+          <input type="checkbox" id="m-kemb" style="accent-color:var(--red);width:auto">Kembalian (exclude dari Monthly Report)
+        </label>
         <button id="btn-manual-add" class="btn-red">+ Tambah</button>
       </div>
     </div>
@@ -337,6 +340,10 @@ html,body{height:100%;font-family:var(--font);background:var(--bg-base,#F5F0E6);
         <button class="sb-toggle" id="sb-toggle">‹</button>
         <span class="page-title">Forecast 2026</span>
         <div id="chips-wrap" style="display:flex;gap:6px;margin-left:8px"></div>
+        <div style="margin-left:auto;position:relative">
+          <button id="bell-btn" style="width:30px;height:30px;border-radius:8px;background:var(--glass);border:.5px solid var(--glass-bd);display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;color:var(--text2);position:relative">🔔<span id="bell-dot" style="display:none;position:absolute;top:4px;right:4px;width:7px;height:7px;border-radius:50%;background:var(--red);border:1.5px solid var(--sb-bg)"></span></button>
+          <div id="bell-dropdown" style="display:none;position:absolute;top:38px;right:0;width:320px;max-height:70vh;overflow-y:auto;background:var(--modal-bg);border:.5px solid var(--glass-bd);border-radius:14px;box-shadow:0 16px 48px rgba(0,0,0,.16);z-index:100"></div>
+        </div>
       </div>
       <div id="reminder-bar">
         <span>⚠</span>
@@ -435,7 +442,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg-base,#F5F0E6);
             <div style="font-size:10px;color:var(--text3);line-height:1.5">Recurring muncul otomatis tiap bulan dengan tanda ↻</div>
           </div>
         </div>
-        <div id="main" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+        <div id="main-rec" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
           <div class="main-hdr"><span class="page-title" id="rec-count-title">Recurring (0)</span></div>
           <div id="rec-list" class="page-body" style="display:flex;flex-direction:column;gap:8px"></div>
         </div>
@@ -518,6 +525,9 @@ html,body{height:100%;font-family:var(--font);background:var(--bg-base,#F5F0E6);
       <label style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--text2);cursor:pointer">
         <input type="checkbox" id="em-est" style="accent-color:var(--red);width:auto">Estimasi
       </label>
+      <label style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--text2);cursor:pointer">
+        <input type="checkbox" id="em-kemb" style="accent-color:var(--red);width:auto">Kembalian (exclude dari Monthly Report)
+      </label>
     </div>
     <div class="modal-footer">
       <button class="btn-save" onclick="saveEdit()">✓ Simpan</button>
@@ -558,7 +568,8 @@ let state = {
   expandedRows: {}, collapsedMonths: new Set(), collapsedHist: true,
   editingTx: null, budgets: {}, budgetPeriod: 'monthly', budgetMonth: new Date().getMonth(),
   mType: 'out', rType: 'out', aiImage: null,
-  theme: localStorage.getItem('gastron-theme') || 'light'
+  theme: localStorage.getItem('gastron-theme') || 'light',
+  activityLog: [], todoWeekly: null, todoMonthly: null
 }
 
 // ─── UTILS ───────────────────────────────────────────────────
@@ -616,6 +627,108 @@ function expandRecurring() {
 }
 const WEEKS = genWeeks()
 const HIST_WEEKS = genHistWeeks()
+
+// ─── ACTIVITY LOG ───────────────────────────────────────────
+async function logActivity(action, entity, description) {
+  const entry = { action, entity, description }
+  try {
+    const { data, error } = await db.from('cashflow_activity_log').insert(entry).select().single()
+    if (error) throw error
+    state.activityLog.unshift(data)
+    if (state.activityLog.length > 50) state.activityLog.length = 50
+  } catch(e) { console.error('Log activity gagal:', e.message) }
+  renderBell()
+}
+function timeAgo(iso) {
+  const diffMs = Date.now() - new Date(iso).getTime()
+  const min = Math.floor(diffMs/60000), hr = Math.floor(min/60), day = Math.floor(hr/24)
+  if (min < 1) return 'baru saja'
+  if (min < 60) return `${min} menit lalu`
+  if (hr < 24) return `${hr} jam lalu`
+  if (day < 7) return `${day} hari lalu`
+  return fmtDate(iso)
+}
+
+// ─── TODO CHECKLIST ─────────────────────────────────────────
+function currentWeekKey() {
+  const w = WEEKS.find(w => today()>=w.start && today()<=w.end)
+  return w ? w.start : null
+}
+function currentMonthKey() { return today().slice(0,7) }
+
+async function saveTodoConfig(key, valueObj) {
+  try {
+    await db.from('cashflow_config').upsert({ key, value: JSON.stringify(valueObj) }, { onConflict:'key' })
+  } catch(e) { console.error('Simpan todo gagal:', e.message) }
+}
+
+function isTodoWeeklyDone() { return state.todoWeekly?.period === currentWeekKey() && state.todoWeekly?.done }
+function isTodoMonthlyDone() { return state.todoMonthly?.period === currentMonthKey() && state.todoMonthly?.done }
+
+function toggleTodoWeekly() {
+  const period = currentWeekKey()
+  const done = !isTodoWeeklyDone()
+  state.todoWeekly = { period, done }
+  saveTodoConfig('todo_weekly', state.todoWeekly)
+  renderBell()
+}
+function toggleTodoMonthly() {
+  const period = currentMonthKey()
+  const done = !isTodoMonthlyDone()
+  state.todoMonthly = { period, done }
+  saveTodoConfig('todo_monthly', state.todoMonthly)
+  renderBell()
+}
+
+function renderBell() {
+  const dot = document.getElementById('bell-dot')
+  const wDone = isTodoWeeklyDone(), mDone = isTodoMonthlyDone()
+  dot.style.display = (!wDone || !mDone) ? 'block' : 'none'
+
+  const dd = document.getElementById('bell-dropdown')
+  if (!dd) return
+  const logHtml = state.activityLog.length
+    ? state.activityLog.slice(0,20).map(a => {
+        const icon = a.action==='add' ? '➕' : a.action==='delete' ? '🗑' : '✎'
+        return `<div style="display:flex;gap:8px;padding:8px 12px;border-bottom:.5px solid var(--divider)">
+          <span style="font-size:12px;flex-shrink:0">${icon}</span>
+          <div style="min-width:0;flex:1">
+            <div style="font-size:11px;color:var(--text)">${a.description}</div>
+            <div style="font-size:9px;color:var(--text3);margin-top:1px">${a.entity} · ${timeAgo(a.created_at)}</div>
+          </div>
+        </div>`
+      }).join('')
+    : `<div style="padding:16px 12px;text-align:center;font-size:11px;color:var(--text3)">Belum ada aktivitas</div>`
+
+  dd.innerHTML = `
+    <div style="padding:12px 14px 8px;border-bottom:.5px solid var(--divider)">
+      <div style="font-family:var(--sora);font-size:10px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.06em;margin-bottom:9px">To-do</div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text2);cursor:pointer;margin-bottom:7px">
+        <input type="checkbox" ${wDone?'checked':''} onchange="toggleTodoWeekly()" style="accent-color:var(--red);width:auto">
+        <span style="${wDone?'text-decoration:line-through;color:var(--text3)':''}">Forecasting mingguan</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text2);cursor:pointer">
+        <input type="checkbox" ${mDone?'checked':''} onchange="toggleTodoMonthly()" style="accent-color:var(--red);width:auto">
+        <span style="${mDone?'text-decoration:line-through;color:var(--text3)':''}">Forecasting bulanan</span>
+      </label>
+    </div>
+    <div style="padding:9px 14px 6px;font-family:var(--sora);font-size:10px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.06em">Aktivitas terakhir</div>
+    <div>${logHtml}</div>`
+}
+
+document.getElementById('bell-btn').onclick = (e) => {
+  e.stopPropagation()
+  const dd = document.getElementById('bell-dropdown')
+  const willOpen = dd.style.display === 'none'
+  dd.style.display = willOpen ? 'block' : 'none'
+  if (willOpen) renderBell()
+}
+document.addEventListener('click', (e) => {
+  const dd = document.getElementById('bell-dropdown')
+  if (dd && dd.style.display !== 'none' && !dd.contains(e.target) && e.target.id !== 'bell-btn') {
+    dd.style.display = 'none'
+  }
+})
 
 // ─── THEME ───────────────────────────────────────────────────
 function applyTheme() {
@@ -697,7 +810,7 @@ async function addManual() {
   const subId = document.getElementById('m-subcat').value
   const cat   = state.categories.find(c=>c.id===catId)
   const sub   = (cat?.subcats||[]).find(s=>s.id===subId)
-  const tx = { name, amount:amt, date, type:state.mType, account:document.getElementById('m-account').value, cat_id:catId||null, cat_name:cat?.name||null, subcat_id:subId||null, subcat_name:sub?.name||null, is_est:document.getElementById('m-est').checked, is_kemb:false }
+  const tx = { name, amount:amt, date, type:state.mType, account:document.getElementById('m-account').value, cat_id:catId||null, cat_name:cat?.name||null, subcat_id:subId||null, subcat_name:sub?.name||null, is_est:document.getElementById('m-est').checked, is_kemb:document.getElementById('m-kemb').checked }
   try {
     const {data,error} = await db.from('cashflow_transactions').insert(tx).select().single()
     if (error) throw error
@@ -708,7 +821,9 @@ async function addManual() {
     document.getElementById('m-amount-preview').textContent = ''
     document.getElementById('m-date').value = today()
     document.getElementById('m-est').checked = false
+    document.getElementById('m-kemb').checked = false
     renderForecast()
+    logActivity('add', 'transaksi', `${name} — ${tx.type==='in'?'+':'-'}Rp ${rp(amt)}`)
   } catch(e) { alert('Gagal: '+e.message) }
 }
 
@@ -801,6 +916,7 @@ async function confirmAI(p) {
     document.getElementById('ai-result').style.display = 'none'
     clearStruk()
     renderForecast()
+    logActivity('add', 'transaksi', `${tx.name} — ${tx.type==='in'?'+':'-'}Rp ${rp(tx.amount)} (AI)`)
   } catch(e) { alert('Gagal: '+e.message) }
 }
 
@@ -1088,6 +1204,7 @@ function openEdit(tx) {
   document.getElementById('em-date').value    = tx.date||today()
   document.getElementById('em-account').value = tx.account||'utama'
   document.getElementById('em-est').checked   = !!tx.is_est
+  document.getElementById('em-kemb').checked  = !!tx.is_kemb
   updateEmPreview()
   populateCatSelect('em-cat', 'em-subcat', tx.type||'out', tx.cat_id, tx.subcat_id)
 }
@@ -1119,7 +1236,7 @@ async function saveEdit() {
   const subId  = document.getElementById('em-subcat').value
   const cat    = state.categories.find(c=>c.id===catId)
   const sub    = (cat?.subcats||[]).find(s=>s.id===subId)
-  const updates = { name, amount:amt, date:document.getElementById('em-date').value, type, account:document.getElementById('em-account').value, cat_id:catId||null, cat_name:cat?.name||null, subcat_id:subId||null, subcat_name:sub?.name||null, is_est:document.getElementById('em-est').checked }
+  const updates = { name, amount:amt, date:document.getElementById('em-date').value, type, account:document.getElementById('em-account').value, cat_id:catId||null, cat_name:cat?.name||null, subcat_id:subId||null, subcat_name:sub?.name||null, is_est:document.getElementById('em-est').checked, is_kemb:document.getElementById('em-kemb').checked }
   try {
     const {data,error} = await db.from('cashflow_transactions').update(updates).eq('id',editingTxId).select().single()
     if (error) throw error
@@ -1129,16 +1246,19 @@ async function saveEdit() {
     renderForecast()
     if (currentPage==='monthly') renderMonthly()
     if (currentPage==='budget') renderBudget()
+    logActivity('edit', 'transaksi', `${name} — ${type==='in'?'+':'-'}Rp ${rp(amt)}`)
   } catch(e) { alert('Gagal: '+e.message) }
 }
 async function deleteFromModal() {
   if (!confirm('Hapus transaksi ini?')) return
+  const tx = state.transactions.find(t=>t.id===editingTxId)
   try {
     const {error} = await db.from('cashflow_transactions').delete().eq('id',editingTxId)
     if (error) throw error
     state.transactions = state.transactions.filter(t=>t.id!==editingTxId)
     closeEditModal()
     renderForecast()
+    if (tx) logActivity('delete', 'transaksi', `${tx.name} — ${tx.type==='in'?'+':'-'}Rp ${rp(tx.amount)}`)
   } catch(e) { alert('Gagal: '+e.message) }
 }
 
@@ -1224,16 +1344,19 @@ async function confirmEst(id) {
     if (idx>=0) state.transactions[idx] = data
     document.getElementById('estcard-'+id).remove()
     renderForecast()
+    logActivity('edit', 'estimasi', `Konfirmasi: ${data.name} — Rp ${rp(data.amount)}`)
   } catch(e) { alert('Gagal: '+e.message) }
 }
 async function deleteEst(id) {
   if (!confirm('Hapus estimasi ini?')) return
+  const tx = state.transactions.find(t=>t.id===id)
   try {
     const {error} = await db.from('cashflow_transactions').delete().eq('id',id)
     if (error) throw error
     state.transactions = state.transactions.filter(t=>t.id!==id)
     document.getElementById('estcard-'+id).remove()
     renderForecast()
+    if (tx) logActivity('delete', 'estimasi', `${tx.name} — Rp ${rp(tx.amount)}`)
   } catch(e) { alert('Gagal: '+e.message) }
 }
 async function saveInlineEst(id) {
@@ -1248,20 +1371,25 @@ async function saveInlineEst(id) {
     if (idx>=0) state.transactions[idx] = data
     document.getElementById('estcard-'+id).remove()
     renderForecast()
+    logActivity('edit', 'estimasi', `Konfirmasi (edit): ${name} — Rp ${rp(amt)}`)
   } catch(e) { alert('Gagal: '+e.message) }
 }
 async function confirmAllEst() {
   if (!confirm('Konfirmasi semua estimasi?')) return
   const todayStr = today()
   const overdue = state.transactions.filter(t=>t.is_est&&t.date<todayStr)
+  let failCount = 0
   for (const tx of overdue) {
     try {
       const {data,error} = await db.from('cashflow_transactions').update({is_est:false}).eq('id',tx.id).select().single()
-      if (!error) { const idx=state.transactions.findIndex(t=>t.id===tx.id); if(idx>=0) state.transactions[idx]=data }
-    } catch{}
+      if (error) throw error
+      const idx=state.transactions.findIndex(t=>t.id===tx.id); if(idx>=0) state.transactions[idx]=data
+    } catch { failCount++ }
   }
   closeEstPopup()
   renderForecast()
+  if (overdue.length - failCount > 0) logActivity('edit', 'estimasi', `Konfirmasi massal: ${overdue.length-failCount} estimasi`)
+  if (failCount > 0) alert(`${failCount} dari ${overdue.length} estimasi gagal dikonfirmasi. Coba lagi via "Lihat estimasi".`)
 }
 
 // ─── CAT SELECT HELPERS ──────────────────────────────────────
@@ -1390,7 +1518,7 @@ document.getElementById('monthly-full-year').onchange = renderMonthly
 
 // ─── BUDGET ──────────────────────────────────────────────────
 function renderBudget() {
-  const { period, budgetMonth } = state
+  const { budgetPeriod: period, budgetMonth } = state
   const COGS = ['d_cogs']
   const all = getAllItems()
   const spending = {}
@@ -1439,7 +1567,7 @@ function renderBudget() {
         </div>
       </div>
       ${budget?`<div class="budget-bar-wrap"><div class="budget-bar" style="width:${pct}%;background:${barColor}"></div></div>`:''}
-      <div id="budget-edit-${cat.id}" style="display:none;display:none">
+      <div id="budget-edit-${cat.id}" style="display:none">
         <div style="display:flex;gap:5px">
           <input type="number" id="budget-input-${cat.id}" placeholder="Contoh: 50000000" class="inp" style="flex:1;font-size:11px" onkeydown="if(event.key==='Enter')saveBudget('${cat.id}')">
           <button onclick="saveBudget('${cat.id}')" style="padding:6px 11px;background:var(--red);border:none;border-radius:var(--r);font-size:11px;font-weight:600;color:#fff;cursor:pointer;font-family:var(--font)">Simpan</button>
@@ -1463,9 +1591,12 @@ async function saveBudget(catId) {
   const v = parseFloat(document.getElementById('budget-input-'+catId).value)
   if (isNaN(v)||v<0) return
   try {
-    await db.from('cashflow_budgets').upsert({ cat_id:catId, period:state.budgetPeriod, amount:v, updated_at:new Date().toISOString() }, { onConflict:'cat_id,period' })
+    const { error } = await db.from('cashflow_budgets').upsert({ cat_id:catId, period:state.budgetPeriod, amount:v, updated_at:new Date().toISOString() }, { onConflict:'cat_id,period' })
+    if (error) throw error
     state.budgets[`${catId}_${state.budgetPeriod}`] = v
     renderBudget()
+    const catName = state.categories.find(c=>c.id===catId)?.name || catId
+    logActivity('edit', 'budget', `${catName} (${state.budgetPeriod}) — Rp ${rp(v)}`)
   } catch(e) { alert('Gagal: '+e.message) }
 }
 
@@ -1554,16 +1685,19 @@ document.getElementById('btn-add-rec').onclick = async () => {
     document.getElementById('r-amount').value=''
     renderRecurring()
     renderForecast()
+    logActivity('add', 'recurring', `${name} — ${state.rType==='in'?'+':'-'}Rp ${rp(amt)}`)
   } catch(e) { alert('Gagal: '+e.message) }
 }
 async function deleteRec(id) {
   if (!confirm('Hapus recurring ini?')) return
+  const rec = state.recurring.find(r=>r.id===id)
   try {
     const {error} = await db.from('cashflow_recurring').delete().eq('id',id)
     if (error) throw error
     state.recurring = state.recurring.filter(r=>r.id!==id)
     renderRecurring()
     renderForecast()
+    if (rec) logActivity('delete', 'recurring', `${rec.name} — Rp ${rp(rec.amount)}`)
   } catch(e) { alert('Gagal: '+e.message) }
 }
 
@@ -1609,15 +1743,18 @@ document.getElementById('btn-add-cat').onclick = async () => {
     renderCategories()
     populateCatSelect('m-cat','m-subcat',state.mType)
     populateCatSelect('r-cat','r-subcat',state.rType)
+    logActivity('add', 'kategori', `${name} (${type==='in'?'Masuk':'Keluar'})`)
   } catch(e) { alert('Gagal: '+e.message) }
 }
 async function deleteCat(id) {
   if (!confirm('Hapus kategori ini?')) return
+  const cat = state.categories.find(c=>c.id===id)
   try {
     const {error} = await db.from('cashflow_categories').delete().eq('id',id)
     if (error) throw error
     state.categories = state.categories.filter(c=>c.id!==id)
     renderCategories()
+    if (cat) logActivity('delete', 'kategori', cat.name)
   } catch(e) { alert('Gagal: '+e.message) }
 }
 async function addSubcat(catId) {
@@ -1632,16 +1769,19 @@ async function addSubcat(catId) {
     state.categories = state.categories.map(c=>c.id===catId?data:c)
     el.value=''
     renderCategories()
+    logActivity('add', 'kategori', `Subkategori "${name}" di ${cat.name}`)
   } catch(e) { alert('Gagal: '+e.message) }
 }
 async function deleteSubcat(catId, subId) {
   const cat = state.categories.find(c=>c.id===catId); if (!cat) return
+  const subName = (cat.subcats||[]).find(s=>s.id===subId)?.name || subId
   const newSubs = (cat.subcats||[]).filter(s=>s.id!==subId)
   try {
     const {data,error} = await db.from('cashflow_categories').upsert({...cat,subcats:newSubs},{onConflict:'id'}).select().single()
     if (error) throw error
     state.categories = state.categories.map(c=>c.id===catId?data:c)
     renderCategories()
+    logActivity('delete', 'kategori', `Subkategori "${subName}" di ${cat.name}`)
   } catch(e) { alert('Gagal: '+e.message) }
 }
 
@@ -1675,17 +1815,23 @@ async function init() {
   populateCatSelect('r-cat', 'r-subcat', 'out')
 
   try {
-    const [txRes, recRes, catRes, cfgRes, budRes] = await Promise.all([
+    const [txRes, recRes, catRes, cfgRes, budRes, actRes, todoWRes, todoMRes] = await Promise.all([
       db.from('cashflow_transactions').select('*').gte('date','2026-01-01').lte('date','2026-12-31').order('date'),
       db.from('cashflow_recurring').select('*').order('created_at'),
       db.from('cashflow_categories').select('*').order('type',{ascending:false}),
       db.from('cashflow_config').select('*').eq('key','saldo_awal').single(),
-      db.from('cashflow_budgets').select('*')
+      db.from('cashflow_budgets').select('*'),
+      db.from('cashflow_activity_log').select('*').order('created_at',{ascending:false}).limit(50),
+      db.from('cashflow_config').select('*').eq('key','todo_weekly').maybeSingle(),
+      db.from('cashflow_config').select('*').eq('key','todo_monthly').maybeSingle()
     ])
     state.transactions = txRes.data||[]
     state.recurring    = recRes.data||[]
     state.categories   = catRes.data||[]
     state.saldoAwal    = Number(cfgRes.data?.value)||0
+    state.activityLog  = actRes.data||[]
+    try { state.todoWeekly  = todoWRes.data?.value ? JSON.parse(todoWRes.data.value) : null } catch { state.todoWeekly = null }
+    try { state.todoMonthly = todoMRes.data?.value ? JSON.parse(todoMRes.data.value) : null } catch { state.todoMonthly = null }
 
     // budgets
     for (const b of (budRes.data||[])) state.budgets[`${b.cat_id}_${b.period}`] = b.amount
@@ -1697,6 +1843,7 @@ async function init() {
   } catch(e) { console.error('Init error:', e) }
 
   renderForecast()
+  renderBell()
 }
 
 init()
