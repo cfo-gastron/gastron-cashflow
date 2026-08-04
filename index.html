@@ -268,6 +268,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg-base,#F5F0E6);
     <div class="nav-sep"></div>
     <button class="nav-btn" data-page="recurring" title="Recurring">↻</button>
     <button class="nav-btn" data-page="categories" title="Kategori">⊞</button>
+    <button class="nav-btn" data-page="alltx" title="Semua Transaksi">≡</button>
     <div class="nav-bot">
       <div class="nav-sep"></div>
       <button id="theme-btn" title="Toggle dark mode">🌙</button>
@@ -289,7 +290,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg-base,#F5F0E6);
         <div style="font-size:10px;color:var(--text2);margin-bottom:7px;display:flex;align-items:center">
           <span class="ai-dot"></span>Parse dengan AI
         </div>
-        <textarea id="ai-text" rows="3" class="inp" style="resize:none;min-height:52px;line-height:1.5;margin-bottom:7px"
+        <textarea id="ai-text" rows="4" class="inp" style="resize:none;min-height:78px;line-height:1.5;margin-bottom:7px"
           placeholder="cth: bayar gaji driver 5jt minggu ini&#10;atau: top up gas 50 juta dari procurement"></textarea>
         <div style="font-size:9px;color:var(--text3);margin-bottom:8px">Enter untuk parse · Shift+Enter baris baru</div>
         <button id="btn-upload-struk" class="inp" style="cursor:pointer;text-align:center;border-style:dashed;margin-bottom:7px">📷 Upload foto struk</button>
@@ -461,6 +462,29 @@ html,body{height:100%;font-family:var(--font);background:var(--bg-base,#F5F0E6);
       </div>
     </div>
 
+    <!-- ALL TRANSACTIONS PAGE -->
+    <div id="page-alltx" class="page">
+      <div class="main-hdr">
+        <span class="page-title">Semua Transaksi</span>
+      </div>
+      <div class="page-body" style="display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:var(--glass);border:.5px solid var(--glass-bd);border-radius:12px;padding:11px 13px;box-shadow:var(--shadow)">
+          <input type="text" class="inp" id="atx-search" placeholder="Cari nama, kategori, atau nominal..." style="flex:2;min-width:180px">
+          <input type="date" class="inp" id="atx-date-from" style="flex:1;min-width:120px">
+          <input type="date" class="inp" id="atx-date-to" style="flex:1;min-width:120px">
+          <select class="sel" id="atx-type" style="flex:1;min-width:110px">
+            <option value="">Semua tipe</option>
+            <option value="in">Masuk</option>
+            <option value="out">Keluar</option>
+          </select>
+          <select class="sel" id="atx-cat" style="flex:1;min-width:140px"><option value="">Semua kategori</option></select>
+          <button class="btn-cancel" id="atx-reset" style="width:auto;padding:8px 14px">Reset</button>
+        </div>
+        <div id="atx-summary" style="font-size:11px;color:var(--text3)"></div>
+        <div id="atx-list" style="display:flex;flex-direction:column;gap:10px"></div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -614,10 +638,18 @@ document.querySelectorAll('.nav-btn[data-page]').forEach(btn => {
     btn.classList.add('on')
     currentPage = btn.dataset.page
     document.getElementById('page-'+currentPage).classList.add('active')
+    const sidebarEl = document.getElementById('sidebar')
+    if (currentPage === 'forecast') {
+      sidebarEl.style.display = ''
+      sidebarEl.classList.toggle('closed', !sbOpen)
+    } else {
+      sidebarEl.style.display = 'none'
+    }
     if (currentPage === 'monthly') renderMonthly()
     if (currentPage === 'budget') renderBudget()
     if (currentPage === 'recurring') renderRecurring()
     if (currentPage === 'categories') renderCategories()
+    if (currentPage === 'alltx') renderAllTx()
   }
 })
 
@@ -904,11 +936,12 @@ function renderExpand(items, type, key) {
   const cls   = type==='in' ? 'n-in' : 'n-out'
   const sign  = type==='in' ? '+' : '-'
   const total = items.reduce((s,z)=>s+Number(z.amount),0)
-  const SHOW  = 6
+  const showAll = !!state.expandedRows[key+'_'+type+'_all']
+  const SHOW  = showAll ? items.length : 6
   const shown = items.slice(0, SHOW)
   const rest  = items.length - SHOW
 
-  let html = `<div class="expand-panel">`
+  let html = `<div class="expand-panel" style="border-left-color:var(--${type==='in'?'green':'red'})">`
   for (const z of shown) {
     const isEst = z.is_est
     html += `<div class="exp-item" onclick="openEdit(${JSON.stringify(z).replace(/"/g,'&quot;')})">
@@ -943,6 +976,99 @@ function toggleHist() {
   state.collapsedHist = !state.collapsedHist
   renderForecast()
 }
+
+// ─── ALL TRANSACTIONS PAGE ─────────────────────────────────
+function populateAtxCatSelect() {
+  const sel = document.getElementById('atx-cat')
+  if (!sel) return
+  const cur = sel.value
+  sel.innerHTML = '<option value="">Semua kategori</option>' + state.categories.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')
+  sel.value = cur
+}
+
+function renderAllTx() {
+  populateAtxCatSelect()
+  const search   = (document.getElementById('atx-search').value||'').trim().toLowerCase()
+  const dateFrom = document.getElementById('atx-date-from').value
+  const dateTo   = document.getElementById('atx-date-to').value
+  const typeF    = document.getElementById('atx-type').value
+  const catF     = document.getElementById('atx-cat').value
+
+  let items = [...state.transactions]
+  if (dateFrom) items = items.filter(z=>z.date>=dateFrom)
+  if (dateTo)   items = items.filter(z=>z.date<=dateTo)
+  if (typeF)    items = items.filter(z=>z.type===typeF)
+  if (catF)     items = items.filter(z=>z.cat_id===catF)
+  if (search) {
+    items = items.filter(z => {
+      const name = (z.name||'').toLowerCase()
+      const cat  = (z.subcat_name||z.cat_name||'').toLowerCase()
+      const amt  = String(Math.round(Number(z.amount)||0))
+      return name.includes(search) || cat.includes(search) || amt.includes(search.replace(/[.,]/g,''))
+    })
+  }
+  items.sort((a,b)=>b.date.localeCompare(a.date))
+
+  const list = document.getElementById('atx-list')
+  const summary = document.getElementById('atx-summary')
+  if (!items.length) {
+    list.innerHTML = `<div class="empty-state"><div style="font-size:28px">≡</div><div style="font-family:var(--sora);font-size:12px;font-weight:600;color:var(--text2)">Ga ada transaksi ditemukan</div></div>`
+    summary.textContent = '0 transaksi'
+    return
+  }
+
+  const totalIn  = items.filter(z=>z.type==='in').reduce((s,z)=>s+Number(z.amount),0)
+  const totalOut = items.filter(z=>z.type==='out').reduce((s,z)=>s+Number(z.amount),0)
+  summary.innerHTML = `${items.length} transaksi &nbsp;·&nbsp; <span class="n-in">+${rp(totalIn)}</span> masuk &nbsp;·&nbsp; <span class="n-out">-${rp(totalOut)}</span> keluar`
+
+  // group by month (YYYY-MM)
+  const groups = {}
+  for (const z of items) {
+    const gk = z.date.slice(0,7)
+    if (!groups[gk]) groups[gk] = []
+    groups[gk].push(z)
+  }
+  const groupKeys = Object.keys(groups).sort((a,b)=>b.localeCompare(a))
+
+  let html = ''
+  for (const gk of groupKeys) {
+    const [y,m] = gk.split('-')
+    const gItems = groups[gk]
+    const gIn  = gItems.filter(z=>z.type==='in').reduce((s,z)=>s+Number(z.amount),0)
+    const gOut = gItems.filter(z=>z.type==='out').reduce((s,z)=>s+Number(z.amount),0)
+    html += `<div>
+      <div class="mo-hdr" style="cursor:default">
+        <span class="mo-label">${MONTHS[parseInt(m)-1]} ${y}</span>
+        <span class="mo-line"></span>
+        <span style="font-size:10px;color:var(--text3)"><span class="n-in">+${rp(gIn)}</span> · <span class="n-out">-${rp(gOut)}</span></span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        ${gItems.map(z=>`<div class="exp-item" style="grid-template-columns:80px 1fr 110px 100px 22px;background:var(--glass);border:.5px solid var(--glass-bd);border-radius:var(--r);margin-bottom:2px;border-left:2px solid var(--${z.type==='in'?'green':'red'})" onclick="openEdit(${JSON.stringify(z).replace(/"/g,'&quot;')})">
+          <span style="font-family:var(--mono);font-size:10px;color:var(--text3)">${z.date}</span>
+          <span class="exp-name${z.is_est?' est':''}">${z.name}${z.is_est?'<span class="badge b-est">Est</span>':''}</span>
+          <span class="exp-cat">${z.subcat_name||z.cat_name||''}</span>
+          <span class="exp-amt ${z.type==='in'?'n-in':'n-out'}">${z.type==='in'?'+':'-'}${rp(z.amount)}</span>
+          <span class="exp-edit">✎</span>
+        </div>`).join('')}
+      </div>
+    </div>`
+  }
+  list.innerHTML = html
+}
+
+document.getElementById('atx-search').addEventListener('input', renderAllTx)
+document.getElementById('atx-date-from').addEventListener('change', renderAllTx)
+document.getElementById('atx-date-to').addEventListener('change', renderAllTx)
+document.getElementById('atx-type').addEventListener('change', renderAllTx)
+document.getElementById('atx-cat').addEventListener('change', renderAllTx)
+document.getElementById('atx-reset').addEventListener('click', () => {
+  document.getElementById('atx-search').value = ''
+  document.getElementById('atx-date-from').value = ''
+  document.getElementById('atx-date-to').value = ''
+  document.getElementById('atx-type').value = ''
+  document.getElementById('atx-cat').value = ''
+  renderAllTx()
+})
 function toggleMonth(m) {
   if (state.collapsedMonths.has(m)) state.collapsedMonths.delete(m)
   else state.collapsedMonths.add(m)
@@ -1263,55 +1389,6 @@ document.getElementById('monthly-incl-est').onchange = renderMonthly
 document.getElementById('monthly-full-year').onchange = renderMonthly
 
 // ─── BUDGET ──────────────────────────────────────────────────
-
-function renderBudgetCard(cat, spending, getBudget) {
-  const spent  = spending[cat.id]||0
-  const budget = getBudget(cat.id)
-  const pct    = budget>0 ? Math.min((spent/budget)*100,100) : 0
-  const rawPct = budget>0 ? (spent/budget)*100 : 0
-  const over   = rawPct>=100
-  const warn   = rawPct>=70&&rawPct<100
-  const barColor = over?'var(--red)':warn?'var(--amber)':'var(--green)'
-  const bdColor  = over?'var(--red-bd)':warn?'var(--amber-bd)':'var(--glass-bd)'
-  const spentColor = over?'var(--red)':warn?'var(--amber)':'var(--text)'
-  const pctBg    = over?'var(--red-bg)':warn?'var(--amber-bg)':'var(--green-bg)'
-  const pctColor = over?'var(--red)':warn?'var(--amber)':'var(--green)'
-
-  let spentHtml = ''
-  if (spent) {
-    let budgetPart = budget ? '<span style="color:var(--text3)">/</span><span style="font-family:var(--mono);color:var(--text3);font-size:10px">'+rp(budget)+'</span>' : ''
-    spentHtml = '<div style="font-size:11px;display:flex;gap:4px;align-items:baseline"><span style="font-family:var(--mono);font-weight:500;color:'+spentColor+'">'+rp(spent)+'</span>'+budgetPart+'</div>'
-  } else {
-    spentHtml = '<div style="font-size:10px;color:var(--text3)">Belum ada pengeluaran</div>'
-  }
-
-  let pctBadge = budget ? '<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:100px;background:'+pctBg+';color:'+pctColor+';border:.5px solid '+bdColor+'">'+rawPct.toFixed(0)+'%</span>' : ''
-  let barHtml  = budget ? '<div class="budget-bar-wrap"><div class="budget-bar" style="width:'+pct+'%;background:'+barColor+'"></div></div>' : ''
-  let noLimit  = !budget ? '<div style="font-size:10px;color:var(--text3);font-style:italic">Belum ada budget limit</div>' : ''
-
-  return '<div class="budget-card" style="border-color:'+bdColor+'">'+
-    '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">'+
-      '<div style="flex:1;min-width:0">'+
-        '<div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:2px">'+cat.name+'</div>'+
-        spentHtml+
-      '</div>'+
-      '<div style="display:flex;gap:5px;align-items:center;flex-shrink:0">'+
-        pctBadge+
-        '<button onclick="setBudgetEdit(\''+cat.id+'\')" style="font-size:9px;font-weight:600;padding:3px 9px;border-radius:6px;background:none;border:.5px solid var(--glass-bd);color:var(--text2);cursor:pointer;font-family:var(--font)">'+(budget?'Edit':'+ Set')+'</button>'+
-      '</div>'+
-    '</div>'+
-    barHtml+
-    '<div id="budget-edit-'+cat.id+'" style="display:none">'+
-      '<div style="display:flex;gap:5px">'+
-        '<input type="number" id="budget-input-'+cat.id+'" placeholder="Contoh: 50000000" class="inp" style="flex:1;font-size:11px" onkeydown="if(event.key===\'Enter\')saveBudget(\''+cat.id+'\')">'+
-        '<button onclick="saveBudget(\''+cat.id+'\')" style="padding:6px 11px;background:var(--red);border:none;border-radius:var(--r);font-size:11px;font-weight:600;color:#fff;cursor:pointer;font-family:var(--font)">Simpan</button>'+
-        '<button onclick="document.getElementById(\'budget-edit-'+cat.id+'\').style.display=\'none\'" style="padding:6px 9px;background:var(--glass);border:.5px solid var(--glass-bd);border-radius:var(--r);font-size:11px;color:var(--text2);cursor:pointer;font-family:var(--font)">✕</button>'+
-      '</div>'+
-    '</div>'+
-    noLimit+
-  '</div>'
-}
-
 function renderBudget() {
   const { period, budgetMonth } = state
   const COGS = ['d_cogs']
@@ -1342,7 +1419,36 @@ function renderBudget() {
   ].map(([l,v,s,c])=>`<div style="background:var(--glass);border:.5px solid var(--glass-bd);border-radius:12px;padding:12px 14px;box-shadow:var(--shadow)"><div style="font-family:var(--sora);font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">${l}</div><div style="font-family:var(--mono);font-size:14px;font-weight:600;color:${c};margin-bottom:3px">${v}</div><div style="font-size:10px;color:var(--text3)">${s}</div></div>`).join('')
 
   // Grid
-  document.getElementById('budget-grid').innerHTML = sorted.map(cat => renderBudgetCard(cat, spending, getBudget)).join('')
+  document.getElementById('budget-grid').innerHTML = sorted.map(cat => {
+    const spent  = spending[cat.id]||0
+    const budget = getBudget(cat.id)
+    const pct    = budget>0 ? Math.min((spent/budget)*100,100) : 0
+    const rawPct = budget>0 ? (spent/budget)*100 : 0
+    const over   = rawPct>=100, warn = rawPct>=70&&rawPct<100
+    const barColor = over?'var(--red)':warn?'var(--amber)':'var(--green)'
+    const bdColor  = over?'var(--red-bd)':warn?'var(--amber-bd)':'var(--glass-bd)'
+    return `<div class="budget-card" style="border-color:${bdColor}">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:2px">${cat.name}</div>
+          ${spent?`<div style="font-size:11px;display:flex;gap:4px;align-items:baseline"><span style="font-family:var(--mono);font-weight:500;color:${over?'var(--red)':warn?'var(--amber)':'var(--text)'}">${rp(spent)}</span>${budget?`<span style="color:var(--text3)">/</span><span style="font-family:var(--mono);color:var(--text3);font-size:10px">${rp(budget)}</span>`:''}</div>`:'<div style="font-size:10px;color:var(--text3)">Belum ada pengeluaran</div>'}
+        </div>
+        <div style="display:flex;gap:5px;align-items:center;flex-shrink:0">
+          ${budget?`<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:100px;background:${over?'var(--red-bg)':warn?'var(--amber-bg)':'var(--green-bg)'};color:${over?'var(--red)':warn?'var(--amber)':'var(--green)'};border:.5px solid ${bdColor}">${rawPct.toFixed(0)}%</span>`:''}
+          <button onclick="setBudgetEdit('${cat.id}')" style="font-size:9px;font-weight:600;padding:3px 9px;border-radius:6px;background:none;border:.5px solid var(--glass-bd);color:var(--text2);cursor:pointer;font-family:var(--font)">${budget?'Edit':'+ Set'}</button>
+        </div>
+      </div>
+      ${budget?`<div class="budget-bar-wrap"><div class="budget-bar" style="width:${pct}%;background:${barColor}"></div></div>`:''}
+      <div id="budget-edit-${cat.id}" style="display:none;display:none">
+        <div style="display:flex;gap:5px">
+          <input type="number" id="budget-input-${cat.id}" placeholder="Contoh: 50000000" class="inp" style="flex:1;font-size:11px" onkeydown="if(event.key==='Enter')saveBudget('${cat.id}')">
+          <button onclick="saveBudget('${cat.id}')" style="padding:6px 11px;background:var(--red);border:none;border-radius:var(--r);font-size:11px;font-weight:600;color:#fff;cursor:pointer;font-family:var(--font)">Simpan</button>
+          <button onclick="document.getElementById('budget-edit-${cat.id}').style.display='none'" style="padding:6px 9px;background:var(--glass);border:.5px solid var(--glass-bd);border-radius:var(--r);font-size:11px;color:var(--text2);cursor:pointer;font-family:var(--font)">✕</button>
+        </div>
+      </div>
+      ${!budget?'<div style="font-size:10px;color:var(--text3);font-style:italic">Belum ada budget limit</div>':''}
+    </div>`
+  }).join('')
 }
 
 function setBudgetEdit(catId) {
@@ -1562,7 +1668,7 @@ db.channel('cashflow-realtime')
 async function init() {
   // Set default collapsed months
   const now = new Date().getMonth()
-  for (const w of WEEKS) { if (w.month < now) state.collapsedMonths.add(w.month) }
+  for (const w of WEEKS) { if (w.month < now || w.month > now+2) state.collapsedMonths.add(w.month) }
 
   // Populate month selects
   populateCatSelect('m-cat', 'm-subcat', 'out')
