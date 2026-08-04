@@ -1263,6 +1263,55 @@ document.getElementById('monthly-incl-est').onchange = renderMonthly
 document.getElementById('monthly-full-year').onchange = renderMonthly
 
 // ─── BUDGET ──────────────────────────────────────────────────
+
+function renderBudgetCard(cat, spending, getBudget) {
+  const spent  = spending[cat.id]||0
+  const budget = getBudget(cat.id)
+  const pct    = budget>0 ? Math.min((spent/budget)*100,100) : 0
+  const rawPct = budget>0 ? (spent/budget)*100 : 0
+  const over   = rawPct>=100
+  const warn   = rawPct>=70&&rawPct<100
+  const barColor = over?'var(--red)':warn?'var(--amber)':'var(--green)'
+  const bdColor  = over?'var(--red-bd)':warn?'var(--amber-bd)':'var(--glass-bd)'
+  const spentColor = over?'var(--red)':warn?'var(--amber)':'var(--text)'
+  const pctBg    = over?'var(--red-bg)':warn?'var(--amber-bg)':'var(--green-bg)'
+  const pctColor = over?'var(--red)':warn?'var(--amber)':'var(--green)'
+
+  let spentHtml = ''
+  if (spent) {
+    let budgetPart = budget ? '<span style="color:var(--text3)">/</span><span style="font-family:var(--mono);color:var(--text3);font-size:10px">'+rp(budget)+'</span>' : ''
+    spentHtml = '<div style="font-size:11px;display:flex;gap:4px;align-items:baseline"><span style="font-family:var(--mono);font-weight:500;color:'+spentColor+'">'+rp(spent)+'</span>'+budgetPart+'</div>'
+  } else {
+    spentHtml = '<div style="font-size:10px;color:var(--text3)">Belum ada pengeluaran</div>'
+  }
+
+  let pctBadge = budget ? '<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:100px;background:'+pctBg+';color:'+pctColor+';border:.5px solid '+bdColor+'">'+rawPct.toFixed(0)+'%</span>' : ''
+  let barHtml  = budget ? '<div class="budget-bar-wrap"><div class="budget-bar" style="width:'+pct+'%;background:'+barColor+'"></div></div>' : ''
+  let noLimit  = !budget ? '<div style="font-size:10px;color:var(--text3);font-style:italic">Belum ada budget limit</div>' : ''
+
+  return '<div class="budget-card" style="border-color:'+bdColor+'">'+
+    '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">'+
+      '<div style="flex:1;min-width:0">'+
+        '<div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:2px">'+cat.name+'</div>'+
+        spentHtml+
+      '</div>'+
+      '<div style="display:flex;gap:5px;align-items:center;flex-shrink:0">'+
+        pctBadge+
+        '<button onclick="setBudgetEdit(\''+cat.id+'\')" style="font-size:9px;font-weight:600;padding:3px 9px;border-radius:6px;background:none;border:.5px solid var(--glass-bd);color:var(--text2);cursor:pointer;font-family:var(--font)">'+(budget?'Edit':'+ Set')+'</button>'+
+      '</div>'+
+    '</div>'+
+    barHtml+
+    '<div id="budget-edit-'+cat.id+'" style="display:none">'+
+      '<div style="display:flex;gap:5px">'+
+        '<input type="number" id="budget-input-'+cat.id+'" placeholder="Contoh: 50000000" class="inp" style="flex:1;font-size:11px" onkeydown="if(event.key===\'Enter\')saveBudget(\''+cat.id+'\')">'+
+        '<button onclick="saveBudget(\''+cat.id+'\')" style="padding:6px 11px;background:var(--red);border:none;border-radius:var(--r);font-size:11px;font-weight:600;color:#fff;cursor:pointer;font-family:var(--font)">Simpan</button>'+
+        '<button onclick="document.getElementById(\'budget-edit-'+cat.id+'\').style.display=\'none\'" style="padding:6px 9px;background:var(--glass);border:.5px solid var(--glass-bd);border-radius:var(--r);font-size:11px;color:var(--text2);cursor:pointer;font-family:var(--font)">✕</button>'+
+      '</div>'+
+    '</div>'+
+    noLimit+
+  '</div>'
+}
+
 function renderBudget() {
   const { period, budgetMonth } = state
   const COGS = ['d_cogs']
@@ -1293,36 +1342,7 @@ function renderBudget() {
   ].map(([l,v,s,c])=>`<div style="background:var(--glass);border:.5px solid var(--glass-bd);border-radius:12px;padding:12px 14px;box-shadow:var(--shadow)"><div style="font-family:var(--sora);font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">${l}</div><div style="font-family:var(--mono);font-size:14px;font-weight:600;color:${c};margin-bottom:3px">${v}</div><div style="font-size:10px;color:var(--text3)">${s}</div></div>`).join('')
 
   // Grid
-  document.getElementById('budget-grid').innerHTML = sorted.map(cat => {
-    const spent  = spending[cat.id]||0
-    const budget = getBudget(cat.id)
-    const pct    = budget>0 ? Math.min((spent/budget)*100,100) : 0
-    const rawPct = budget>0 ? (spent/budget)*100 : 0
-    const over   = rawPct>=100, warn = rawPct>=70&&rawPct<100
-    const barColor = over?'var(--red)':warn?'var(--amber)':'var(--green)'
-    const bdColor  = over?'var(--red-bd)':warn?'var(--amber-bd)':'var(--glass-bd)'
-    return `<div class="budget-card" style="border-color:${bdColor}">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
-        <div style="flex:1;min-width:0">
-          <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:2px">${cat.name}</div>
-          ${spent?`<div style="font-size:11px;display:flex;gap:4px;align-items:baseline"><span style="font-family:var(--mono);color:${over?'var(--red)':warn?'var(--amber)':'var(--text)';font-weight:500}">${rp(spent)}</span>${budget?`<span style="color:var(--text3)">/</span><span style="font-family:var(--mono);color:var(--text3);font-size:10px">${rp(budget)}</span>`:''}</div>`:'<div style="font-size:10px;color:var(--text3)">Belum ada pengeluaran</div>'}
-        </div>
-        <div style="display:flex;gap:5px;align-items:center;flex-shrink:0">
-          ${budget?`<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:100px;background:${over?'var(--red-bg)':warn?'var(--amber-bg)':'var(--green-bg)'};color:${over?'var(--red)':warn?'var(--amber)':'var(--green)'};border:.5px solid ${bdColor}">${rawPct.toFixed(0)}%</span>`:''}
-          <button onclick="setBudgetEdit('${cat.id}')" style="font-size:9px;font-weight:600;padding:3px 9px;border-radius:6px;background:none;border:.5px solid var(--glass-bd);color:var(--text2);cursor:pointer;font-family:var(--font)">${budget?'Edit':'+ Set'}</button>
-        </div>
-      </div>
-      ${budget?`<div class="budget-bar-wrap"><div class="budget-bar" style="width:${pct}%;background:${barColor}"></div></div>`:''}
-      <div id="budget-edit-${cat.id}" style="display:none;display:none">
-        <div style="display:flex;gap:5px">
-          <input type="number" id="budget-input-${cat.id}" placeholder="Contoh: 50000000" class="inp" style="flex:1;font-size:11px" onkeydown="if(event.key==='Enter')saveBudget('${cat.id}')">
-          <button onclick="saveBudget('${cat.id}')" style="padding:6px 11px;background:var(--red);border:none;border-radius:var(--r);font-size:11px;font-weight:600;color:#fff;cursor:pointer;font-family:var(--font)">Simpan</button>
-          <button onclick="document.getElementById('budget-edit-${cat.id}').style.display='none'" style="padding:6px 9px;background:var(--glass);border:.5px solid var(--glass-bd);border-radius:var(--r);font-size:11px;color:var(--text2);cursor:pointer;font-family:var(--font)">✕</button>
-        </div>
-      </div>
-      ${!budget?'<div style="font-size:10px;color:var(--text3);font-style:italic">Belum ada budget limit</div>':''}
-    </div>`
-  }).join('')
+  document.getElementById('budget-grid').innerHTML = sorted.map(cat => renderBudgetCard(cat, spending, getBudget)).join('')
 }
 
 function setBudgetEdit(catId) {
