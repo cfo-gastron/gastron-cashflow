@@ -380,9 +380,6 @@ html,body{height:100%;font-family:var(--font);background:var(--bg-base,#F5F0E6);
           <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);cursor:pointer">
             <input type="checkbox" id="monthly-show-budget" style="accent-color:var(--red);width:auto">Budget vs Actual
           </label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);cursor:pointer">
-            <input type="checkbox" id="monthly-show-rolling" style="accent-color:var(--red);width:auto">Rolling 3-Bulan
-          </label>
         </div>
       </div>
       <div class="monthly-wrap">
@@ -1669,7 +1666,6 @@ function renderMonthly() {
   const inclEst  = document.getElementById('monthly-incl-est').checked
   const fullYear = document.getElementById('monthly-full-year').checked
   const showBudget = document.getElementById('monthly-show-budget').checked
-  const showRolling = document.getElementById('monthly-show-rolling').checked
   const months   = fullYear ? [0,1,2,3,4,5,6,7,8,9,10,11] : [3,4,5,6,7,8,9,10,11]
   const COGS      = ['d_cogs']
   const CAPEX     = ['d_capex']
@@ -1725,9 +1721,6 @@ function renderMonthly() {
   const FINANCING_ONLY = sortedCats.filter(id=>FINANCING.includes(id))
 
   // rolling 3-bulan: bulan yang udah realisasi (udah lewat) dalam rentang yang lagi ditampilin
-  const nowMonth = new Date().getMonth()
-  const realizedMonths = months.filter(m=>m<nowMonth).slice(-3)
-
   function nc(v,neg,items,label) {
     if (!v) return `<td style="text-align:right;color:var(--text3);font-family:var(--mono);font-size:11px">—</td>`
     const c = neg?'var(--red)':v>0?'var(--green)':'var(--red)'
@@ -1752,13 +1745,6 @@ function renderMonthly() {
   function subtotalRow(label, byMonth, total, bg, size) {
     return `<tr><td style="${td1.slice(7,-1)};font-weight:700;background:${bg}">${label}</td>${months.map(m=>`<td style="text-align:right;background:${bg}"><span style="font-family:var(--mono);font-size:${size||'11px'};font-weight:700;color:${byMonth[m]>=0?'var(--green)':'var(--red)'}">${byMonth[m]?rp(Math.abs(byMonth[m])):'—'}</span></td>`).join('')}<td style="text-align:right;background:${bg}"><span style="font-family:var(--mono);font-size:${size||'11px'};font-weight:700;color:${total>=0?'var(--green)':'var(--red)'}">${total?rp(Math.abs(total)):'—'}</span></td>${showBudget?`<td style="background:${bg}"></td><td style="background:${bg}"></td>`:''}</tr>`
   }
-  function rollingRow(label, byMonth, bg) {
-    if (!showRolling || realizedMonths.length===0) return ''
-    const avg = realizedMonths.reduce((s,m)=>s+byMonth[m],0)/realizedMonths.length
-    const totalCols = months.length+1+extraCols
-    return `<tr><td style="${td1.slice(7,-1)};font-size:10px;font-style:italic;color:var(--text3);background:${bg}">↳ Rata-rata 3 Bln Terakhir (${realizedMonths.map(m=>MONTHS[m]).join(', ')})</td><td colspan="${totalCols}" style="text-align:left;padding:5px 12px;background:${bg}"><span style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--text2)">Rp ${rp(Math.abs(avg))}</span></td></tr>`
-  }
-
   function catRow(cid) {
     const totalActual = months.reduce((s,m)=>{const c=data[m].out[cid];return s+(c?Object.values(c.subs).reduce((a,b)=>a+b,0):0)},0)
     const monthCells = months.map(m=>{const c=data[m].out[cid];const v=c?Object.values(c.subs).reduce((a,b)=>a+b,0):0;return nc(v,true,c?Object.values(c.items).flat():null,`${allOut[cid]} · ${MONTHS[m]}`)}).join('')
@@ -1786,7 +1772,6 @@ function renderMonthly() {
     }
   }
   html += `<tr><td style="${td1.slice(7,-1)};font-weight:700;color:var(--green);background:rgba(30,138,85,.06)">TOTAL PENDAPATAN</td>${months.map(m=>`<td style="text-align:right;background:rgba(30,138,85,.06)"><span style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--green)">${mRev[m]?rp(mRev[m]):'—'}</span></td>`).join('')}<td style="text-align:right;background:rgba(30,138,85,.06)"><span style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--green)">${totRev?rp(totRev):'—'}</span></td>${showBudget?`<td style="background:rgba(30,138,85,.06)"></td><td style="background:rgba(30,138,85,.06)"></td>`:''}</tr>`
-  html += rollingRow('Rev', mRev, 'rgba(30,138,85,.03)')
   html += `<tr><td colspan="${months.length+2+extraCols}" style="height:6px;background:var(--sb-bg);border:none;padding:0"></td></tr>`
 
   // COGS
@@ -1800,7 +1785,6 @@ function renderMonthly() {
   html += `<tr class="sec-hdr"><td colspan="${months.length+2+extraCols}" style="padding:6px 12px;font-family:var(--sora);font-size:9px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:.07em;background:var(--amber-bg)">📊 Operating Expenses</td></tr>`
   for(const cid of OPEX_ONLY) html += catRow(cid)
   html += subtotalRow('TOTAL OPEX', Object.fromEntries(months.map(m=>[m,-mOpex[m]])), -totOpex, 'rgba(224,159,62,.08)')
-  html += rollingRow('Opex', Object.fromEntries(months.map(m=>[m,mOpex[m]])), 'rgba(224,159,62,.03)')
   html += `<tr><td colspan="${months.length+2+extraCols}" style="height:6px;background:var(--sb-bg);border:none;padding:0"></td></tr>`
 
   // OPERATING CASH FLOW
@@ -1828,7 +1812,6 @@ function renderMonthly() {
   // NET
   html += `<tr><td style="${td1.slice(7,-1)};font-weight:700;background:rgba(67,123,202,.06)">NET CASHFLOW</td>${months.map(m=>`<td style="text-align:right;background:rgba(67,123,202,.06)"><span style="font-family:var(--mono);font-size:12px;font-weight:700;color:${mNet[m]>=0?'var(--green)':'var(--red)'}">${mNet[m]?rp(Math.abs(mNet[m])):'—'}</span></td>`).join('')}<td style="text-align:right;background:rgba(67,123,202,.06)"><span style="font-family:var(--mono);font-size:12px;font-weight:700;color:${totNet>=0?'var(--green)':'var(--red)'}">${totNet?rp(Math.abs(totNet)):'—'}</span></td>${showBudget?`<td style="background:rgba(67,123,202,.06)"></td><td style="background:rgba(67,123,202,.06)"></td>`:''}</tr>`
   html += `<tr><td style="${td1.slice(7,-1)};color:var(--text3);font-size:10px;background:rgba(67,123,202,.04)">Net Margin</td>${months.map(m=>`<td style="text-align:right;font-size:10px;color:var(--text3);background:rgba(67,123,202,.04)">${pct(mNet[m],mRev[m])}</td>`).join('')}<td style="text-align:right;font-size:10px;color:var(--text3);background:rgba(67,123,202,.04)">${pct(totNet,totRev)}</td>${emptyExtraCols()}</tr>`
-  html += rollingRow('Net', mNet, 'rgba(67,123,202,.03)')
   html += '</tbody>'
   document.getElementById('monthly-table').innerHTML = html
 }
@@ -1841,7 +1824,6 @@ function showMonthlyDetail(items, label) {
 document.getElementById('monthly-incl-est').onchange = renderMonthly
 document.getElementById('monthly-full-year').onchange = renderMonthly
 document.getElementById('monthly-show-budget').onchange = renderMonthly
-document.getElementById('monthly-show-rolling').onchange = renderMonthly
 
 // ─── BUDGET ──────────────────────────────────────────────────
 function renderBudget() {
