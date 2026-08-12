@@ -79,7 +79,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg-base,#F5F0E6);
 
 /* MAIN */
 #main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
-.main-hdr{display:flex;align-items:center;gap:9px;padding:0 16px;height:48px;background:var(--sb-bg);backdrop-filter:blur(18px);border-bottom:.5px solid var(--glass-bd);flex-shrink:0}
+.main-hdr{display:flex;align-items:center;gap:9px;padding:0 16px;height:48px;background:var(--sb-bg);backdrop-filter:blur(18px);border-bottom:.5px solid var(--glass-bd);flex-shrink:0;position:relative;z-index:20}
 .sb-toggle{width:26px;height:26px;border-radius:7px;background:var(--glass);border:.5px solid var(--glass-bd);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--text2);cursor:pointer}
 .page-title{font-family:var(--sora);font-size:15px;font-weight:700;color:var(--navy);letter-spacing:-.02em}
 
@@ -387,6 +387,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg-base,#F5F0E6);
           <div style="font-family:var(--sora);font-size:14px;font-weight:700;color:var(--navy);margin-bottom:3px">Monthly Cashflow Summary 2026</div>
           <div style="font-size:11px;color:var(--text3)">Otomatis dari Forecast & Recurring</div>
         </div>
+        <div id="monthly-kpis" style="display:grid;grid-template-columns:repeat(4,minmax(120px,1fr));gap:10px;margin-bottom:14px"></div>
         <div style="overflow-x:auto;border-radius:12px;border:.5px solid var(--glass-bd);box-shadow:var(--shadow)">
           <table class="monthly-tbl" id="monthly-table"></table>
         </div>
@@ -633,7 +634,7 @@ let state = {
   editingTx: null, budgets: {}, budgetPeriod: 'monthly', budgetMonth: new Date().getMonth(),
   mType: 'out', rType: 'out', aiImage: null,
   theme: localStorage.getItem('gastron-theme') || 'light',
-  activityLog: [], todoWeekly: null, todoMonthly: null,
+  activityLog: [], todoWeekly: null, todoMonthly: null, todos: [],
   targets: {},
   capitalLog: []
 }
@@ -749,7 +750,8 @@ function toggleTodoMonthly() {
 function renderBell() {
   const dot = document.getElementById('bell-dot')
   const wDone = isTodoWeeklyDone(), mDone = isTodoMonthlyDone()
-  dot.style.display = (!wDone || !mDone) ? 'block' : 'none'
+  const hasUndoneTodo = state.todos.some(t=>!t.done)
+  dot.style.display = (!wDone || !mDone || hasUndoneTodo) ? 'block' : 'none'
 
   const dd = document.getElementById('bell-dropdown')
   if (!dd) return
@@ -766,6 +768,13 @@ function renderBell() {
       }).join('')
     : `<div style="padding:16px 12px;text-align:center;font-size:11px;color:var(--text3)">Belum ada aktivitas</div>`
 
+  const todosHtml = state.todos.map(t => `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <input type="checkbox" ${t.done?'checked':''} onchange="toggleTodo('${t.id}')" style="accent-color:var(--red);width:auto;flex-shrink:0">
+      <span style="flex:1;font-size:11px;color:${t.done?'var(--text3)':'var(--text2)'};${t.done?'text-decoration:line-through':''}">${t.text}</span>
+      <button onclick="deleteTodo('${t.id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px;padding:0;flex-shrink:0">×</button>
+    </div>`).join('')
+
   dd.innerHTML = `
     <div style="padding:12px 14px 8px;border-bottom:.5px solid var(--divider)">
       <div style="font-family:var(--sora);font-size:10px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.06em;margin-bottom:9px">To-do</div>
@@ -773,13 +782,52 @@ function renderBell() {
         <input type="checkbox" ${wDone?'checked':''} onchange="toggleTodoWeekly()" style="accent-color:var(--red);width:auto">
         <span style="${wDone?'text-decoration:line-through;color:var(--text3)':''}">Forecasting mingguan</span>
       </label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text2);cursor:pointer">
+      <label style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text2);cursor:pointer;margin-bottom:${state.todos.length?'9px':'0'}">
         <input type="checkbox" ${mDone?'checked':''} onchange="toggleTodoMonthly()" style="accent-color:var(--red);width:auto">
         <span style="${mDone?'text-decoration:line-through;color:var(--text3)':''}">Forecasting bulanan</span>
       </label>
+      ${state.todos.length?`<div style="border-top:.5px solid var(--divider);padding-top:8px;margin-top:2px">${todosHtml}</div>`:''}
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <input type="text" id="new-todo-text" placeholder="Tambah to-do..." style="flex:1;padding:6px 9px;border-radius:8px;border:.5px solid var(--glass-bd);background:var(--input-bg,transparent);font-size:11px;color:var(--text);font-family:inherit" onkeydown="if(event.key==='Enter')addTodo()">
+        <button onclick="addTodo()" style="padding:6px 10px;border-radius:8px;border:none;background:var(--red);color:#fff;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0">+</button>
+      </div>
     </div>
     <div style="padding:9px 14px 6px;font-family:var(--sora);font-size:10px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.06em">Aktivitas terakhir</div>
     <div>${logHtml}</div>`
+}
+
+async function addTodo() {
+  const input = document.getElementById('new-todo-text')
+  const text = input.value.trim()
+  if (!text) return
+  try {
+    const { data, error } = await db.from('cashflow_todos').insert({ text, done:false }).select().single()
+    if (error) throw error
+    state.todos.push(data)
+    input.value = ''
+    renderBell()
+  } catch(e) { alert('Gagal nambah to-do: '+e.message) }
+}
+
+async function toggleTodo(id) {
+  const t = state.todos.find(x=>x.id===id)
+  if (!t) return
+  try {
+    const { data, error } = await db.from('cashflow_todos').update({ done: !t.done }).eq('id', id).select().single()
+    if (error) throw error
+    const idx = state.todos.findIndex(x=>x.id===id)
+    state.todos[idx] = data
+    renderBell()
+  } catch(e) { alert('Gagal update: '+e.message) }
+}
+
+async function deleteTodo(id) {
+  try {
+    const { error } = await db.from('cashflow_todos').delete().eq('id', id)
+    if (error) throw error
+    state.todos = state.todos.filter(t=>t.id!==id)
+    renderBell()
+  } catch(e) { alert('Gagal hapus: '+e.message) }
 }
 
 document.getElementById('bell-btn').onclick = (e) => {
@@ -1662,6 +1710,15 @@ function populateSubcatSelect(selId, subcats, selId2='') {
 }
 
 // ─── MONTHLY REPORT ──────────────────────────────────────────
+function getCurrentSaldo() {
+  const { rows } = calcForecast()
+  const curRow = rows.find(r=>r.isCur)
+  if (curRow) return curRow.open
+  const pastRows = rows.filter(r=>r.week.end < today())
+  if (pastRows.length) return pastRows[pastRows.length-1].close
+  return state.saldoAwal
+}
+
 function renderMonthly() {
   const inclEst  = document.getElementById('monthly-incl-est').checked
   const fullYear = document.getElementById('monthly-full-year').checked
@@ -1704,6 +1761,7 @@ function renderMonthly() {
     mNet[m]  = mFCF[m]-mFinancing[m]
   }
   const totRev=months.reduce((s,m)=>s+mRev[m],0)
+  const totCOGSAll=months.reduce((s,m)=>s+mCOGS[m],0)
   const totGP=months.reduce((s,m)=>s+mGP[m],0)
   const totOpex=months.reduce((s,m)=>s+mOpex[m],0)
   const totOCF=months.reduce((s,m)=>s+mOCF[m],0)
@@ -1814,6 +1872,32 @@ function renderMonthly() {
   html += `<tr><td style="${td1.slice(7,-1)};color:var(--text3);font-size:10px;background:rgba(67,123,202,.04)">Net Margin</td>${months.map(m=>`<td style="text-align:right;font-size:10px;color:var(--text3);background:rgba(67,123,202,.04)">${pct(mNet[m],mRev[m])}</td>`).join('')}<td style="text-align:right;font-size:10px;color:var(--text3);background:rgba(67,123,202,.04)">${pct(totNet,totRev)}</td>${emptyExtraCols()}</tr>`
   html += '</tbody>'
   document.getElementById('monthly-table').innerHTML = html
+
+  // KPI cards
+  const currentSaldo = getCurrentSaldo()
+  const avgMonthlyOpex = totOpex / months.length
+  const runwayMonths = avgMonthlyOpex ? (currentSaldo / avgMonthlyOpex) : null
+  const fcfMargin = totRev ? (totFCF/totRev*100) : null
+  const cogsPct = totRev ? (totCOGSAll/totRev*100) : null
+  const opexPct = totRev ? (totOpex/totRev*100) : null
+
+  function kpiCard(label, value, sub, color) {
+    return `<div style="background:var(--glass);border:.5px solid var(--glass-bd);border-radius:12px;padding:12px 14px;box-shadow:var(--shadow)">
+      <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">${label}</div>
+      <div style="font-family:var(--mono);font-size:18px;font-weight:700;color:${color||'var(--text)'}">${value}</div>
+      ${sub?`<div style="font-size:10px;color:var(--text3);margin-top:3px">${sub}</div>`:''}
+    </div>`
+  }
+
+  const runwayColor = runwayMonths==null?'var(--text)':runwayMonths<2?'var(--red)':runwayMonths<4?'var(--amber)':'var(--green)'
+  const fcfColor = fcfMargin==null?'var(--text)':fcfMargin>=0?'var(--green)':'var(--red)'
+
+  document.getElementById('monthly-kpis').innerHTML = [
+    kpiCard('Runway', runwayMonths!=null?`${runwayMonths.toFixed(1)} bln`:'—', `Saldo ÷ rata-rata Opex bulanan`, runwayColor),
+    kpiCard('FCF Margin', fcfMargin!=null?`${fcfMargin.toFixed(1)}%`:'—', `FCF ÷ Pendapatan`, fcfColor),
+    kpiCard('COGS % Revenue', cogsPct!=null?`${cogsPct.toFixed(1)}%`:'—', `COGS ÷ Pendapatan`),
+    kpiCard('Opex % Revenue', opexPct!=null?`${opexPct.toFixed(1)}%`:'—', `Opex ÷ Pendapatan`),
+  ].join('')
 }
 function showMonthlyDetail(items, label) {
   // simple alert for now
@@ -2124,7 +2208,7 @@ async function init() {
   populateCatSelect('r-cat', 'r-subcat', 'out')
 
   try {
-    const [txRes, recRes, catRes, cfgRes, budRes, actRes, todoWRes, todoMRes, tgtRes, clRes] = await Promise.all([
+    const [txRes, recRes, catRes, cfgRes, budRes, actRes, todoWRes, todoMRes, tgtRes, clRes, todosRes] = await Promise.all([
       db.from('cashflow_transactions').select('*').gte('date','2026-01-01').lte('date','2026-12-31').order('date'),
       db.from('cashflow_recurring').select('*').order('created_at'),
       db.from('cashflow_categories').select('*').order('type',{ascending:false}),
@@ -2134,7 +2218,8 @@ async function init() {
       db.from('cashflow_config').select('*').eq('key','todo_weekly').maybeSingle(),
       db.from('cashflow_config').select('*').eq('key','todo_monthly').maybeSingle(),
       db.from('cashflow_target').select('*'),
-      db.from('cashflow_capital_log').select('*').order('decision_date',{ascending:false})
+      db.from('cashflow_capital_log').select('*').order('decision_date',{ascending:false}),
+      db.from('cashflow_todos').select('*').order('created_at',{ascending:true})
     ])
     state.transactions = txRes.data||[]
     state.recurring    = recRes.data||[]
@@ -2142,6 +2227,7 @@ async function init() {
     state.saldoAwal    = Number(cfgRes.data?.value)||0
     state.activityLog  = actRes.data||[]
     state.capitalLog   = clRes.data||[]
+    state.todos        = todosRes.data||[]
     try { state.todoWeekly  = todoWRes.data?.value ? JSON.parse(todoWRes.data.value) : null } catch { state.todoWeekly = null }
     try { state.todoMonthly = todoMRes.data?.value ? JSON.parse(todoMRes.data.value) : null } catch { state.todoMonthly = null }
     for (const t of (tgtRes.data||[])) state.targets[t.month] = { revenue:t.revenue, trips:t.trips, opexOther:t.opex_other, cogs:t.cogs }
