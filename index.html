@@ -54,7 +54,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg-base,#F5F0E6);
 @keyframes fl{0%,100%{transform:translate(0,0)}40%{transform:translate(18px,-22px)}75%{transform:translate(-12px,14px)}}
 
 /* ─── APP SHELL ─────────────────────────────────────────────── */
-#app{position:relative;z-index:1;display:flex;height:100vh;overflow:hidden}
+#app{position:relative;z-index:1;display:none;height:100vh;overflow:hidden}
 
 /* NAV */
 #nav{width:48px;flex-shrink:0;background:var(--sb-bg);backdrop-filter:blur(24px);border-right:.5px solid var(--glass-bd);display:flex;flex-direction:column;align-items:center;padding:14px 0;gap:2px;z-index:10;transition:background .4s}
@@ -257,6 +257,20 @@ html,body{height:100%;font-family:var(--font);background:var(--bg-base,#F5F0E6);
 
 <!-- BG -->
 <div id="bg"><div class="blob"></div><div class="blob"></div><div class="blob"></div></div>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen" style="display:flex;position:fixed;inset:0;z-index:500;background:var(--bg-base);align-items:center;justify-content:center;flex-direction:column;padding:24px;text-align:center">
+  <div style="width:64px;height:64px;border-radius:16px;background:var(--red);display:flex;align-items:center;justify-content:center;margin-bottom:18px;box-shadow:0 8px 24px rgba(201,64,64,.3)">
+    <img src="data:image/png;base64,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" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:9px">
+  </div>
+  <div style="font-family:var(--sora);font-size:18px;font-weight:700;color:var(--text);margin-bottom:6px">Gastron Cashflow</div>
+  <div style="font-size:12px;color:var(--text3);margin-bottom:24px">Login pake akun Google kantor buat lanjut</div>
+  <button id="google-login-btn" style="display:flex;align-items:center;gap:10px;padding:11px 20px;border-radius:10px;border:.5px solid var(--glass-bd);background:var(--glass);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">
+    <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.03l2.99-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.97L3.95 7.3C4.66 5.17 6.65 3.58 9 3.58z"/></svg>
+    Login dengan Google
+  </button>
+  <div id="login-error" style="display:none;margin-top:14px;font-size:12px;color:var(--red);max-width:280px"></div>
+</div>
 
 <!-- APP -->
 <div id="app">
@@ -2245,7 +2259,40 @@ async function init() {
   renderBell()
 }
 
-init()
+const ALLOWED_EMAILS = ['cfo@gastronenergy.com','finance@gastronenergy.com','febranrizkita.g@gmail.com','ceo@gastronenergy.com']
+
+function showLoginScreen(errorMsg) {
+  document.getElementById('login-screen').style.display = 'flex'
+  document.getElementById('app').style.display = 'none'
+  const el = document.getElementById('login-error')
+  if (errorMsg) { el.textContent = errorMsg; el.style.display = 'block' }
+  else { el.style.display = 'none' }
+}
+function hideLoginScreen() {
+  document.getElementById('login-screen').style.display = 'none'
+  document.getElementById('app').style.display = 'flex'
+}
+
+document.getElementById('google-login-btn').onclick = async () => {
+  await db.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } })
+}
+
+let appInitialized = false
+async function checkAuthAndBoot() {
+  const { data: { session } } = await db.auth.getSession()
+  if (!session) { showLoginScreen(); return }
+  const email = session.user.email
+  if (!ALLOWED_EMAILS.includes(email)) {
+    await db.auth.signOut()
+    showLoginScreen(`Email "${email}" ga punya akses ke app ini. Coba login pake akun lain.`)
+    return
+  }
+  hideLoginScreen()
+  if (!appInitialized) { appInitialized = true; init() }
+}
+
+db.auth.onAuthStateChange(() => { checkAuthAndBoot() })
+checkAuthAndBoot()
 </script>
 </body>
 </html>
