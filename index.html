@@ -1360,7 +1360,8 @@ function closeEditModal() {
 async function saveEdit() {
   const name = document.getElementById('em-name').value.trim()
   const amt  = parseFloat(document.getElementById('em-amount').value)
-  if (!name||!amt||amt<=0) return
+  if (!name) { alert('Nama transaksi wajib diisi'); return }
+  if (isNaN(amt) || amt<0) { alert('Nominal ga valid'); return }
   const type   = document.getElementById('em-type-in').classList.contains('on') ? 'in' : 'out'
   const catId  = document.getElementById('em-cat').value
   const subId  = document.getElementById('em-subcat').value
@@ -1493,7 +1494,8 @@ async function saveInlineEst(id) {
   const name = document.getElementById('il-name-'+id).value.trim()
   const amt  = parseFloat(document.getElementById('il-amt-'+id).value)
   const date = document.getElementById('il-date-'+id).value
-  if (!name||!amt) return
+  if (!name) { alert('Nama transaksi wajib diisi'); return }
+  if (isNaN(amt) || amt<0) { alert('Nominal ga valid'); return }
   try {
     const {data,error} = await db.from('cashflow_transactions').update({name,amount:amt,date,is_est:false}).eq('id',id).select().single()
     if (error) throw error
