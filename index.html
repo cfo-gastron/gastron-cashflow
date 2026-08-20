@@ -2242,6 +2242,19 @@ db.channel('cashflow-realtime')
   })
   .subscribe()
 
+// ─── ESC KEY: tutup modal/popup/dropdown yang lagi kebuka ─────
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return
+  const editModal = document.getElementById('edit-modal')
+  const estPopup = document.getElementById('est-popup')
+  const monthlyDetail = document.getElementById('monthly-detail-modal')
+  const bellDropdown = document.getElementById('bell-dropdown')
+  if (editModal && editModal.style.display !== 'none') { closeEditModal(); return }
+  if (estPopup && estPopup.style.display !== 'none') { closeEstPopup(); return }
+  if (monthlyDetail && monthlyDetail.style.display !== 'none') { closeMonthlyDetail(); return }
+  if (bellDropdown && bellDropdown.style.display !== 'none') { bellDropdown.style.display = 'none'; return }
+})
+
 // ─── INIT ────────────────────────────────────────────────────
 async function init() {
   // Set default collapsed months
